@@ -20,7 +20,6 @@ The workflow will open the MacOS System Settings, navigate to the appropriate se
 
 ## Requirements
 
----
 1. Alfred 5.1 or later
 2. Active [iCloud+](https://support.apple.com/guide/icloud/mm9d9012c9e8/icloud) subscription
 3. MacOS 14.1 or later
@@ -28,7 +27,6 @@ The workflow will open the MacOS System Settings, navigate to the appropriate se
 
 ## Configuration
 
----
 The workflow currently supports the following languages and config values:
 - English
   - `EN`
@@ -39,11 +37,9 @@ The default setting is `EN`. To change the language, open the Alfred Preferences
 
 ## Why?
 
----
 On some websites you don't get the native icloud+ hide my mail prompt for the email field, so it has to be created manually.
 The complete process is automated with this workflow, so you don't have to click 8-10 times through the system settings to get your generated mail.
 
 ## Credits
 
----
 The main script is heavily inspired by a created Shortcut from [this reddit thread](https://www.reddit.com/r/shortcuts/comments/yp5817/comment/je8o0or/)
