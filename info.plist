@@ -1,0 +1,698 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>bundleid</key>
+	<string>com.klizzy.hidemymail</string>
+	<key>category</key>
+	<string>Productivity</string>
+	<key>connections</key>
+	<dict>
+		<key>1F7A821B-A31C-4324-97D2-527A2122A0A5</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>3C4D1533-066A-44DD-8D10-2D58CEB9F486</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>3BA55F86-8A4D-4179-A06B-0BD1A289DB87</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>D38E1A0C-88F1-41B6-8C60-616E475C7572</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>3C4D1533-066A-44DD-8D10-2D58CEB9F486</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>8B5FE991-43A8-420E-8EB0-F99126332A50</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>sourceoutputuid</key>
+				<string>E5950789-89C4-472A-A9A5-EC50CEB910D6</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>8B5FE991-43A8-420E-8EB0-F99126332A50</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>sourceoutputuid</key>
+				<string>4D727EA0-A3C4-4B0B-A805-9148C12B7E4E</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>4CDB0F68-080E-41D9-AD6D-39E69585E5B5</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>3E851897-CFD4-4689-8541-85E1EDAF1147</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>1F7A821B-A31C-4324-97D2-527A2122A0A5</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>7804CD9C-CC9E-46DA-87C0-70EF1FF5BB95</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>E31033E5-DA73-40A8-A6AE-D84C10AE7827</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>8B5FE991-43A8-420E-8EB0-F99126332A50</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>3BA55F86-8A4D-4179-A06B-0BD1A289DB87</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>A6780C8C-DA29-4337-9F49-685D444BF086</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>E31033E5-DA73-40A8-A6AE-D84C10AE7827</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>D38E1A0C-88F1-41B6-8C60-616E475C7572</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>A6780C8C-DA29-4337-9F49-685D444BF086</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>sourceoutputuid</key>
+				<string>E5950789-89C4-472A-A9A5-EC50CEB910D6</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>7804CD9C-CC9E-46DA-87C0-70EF1FF5BB95</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>sourceoutputuid</key>
+				<string>4D727EA0-A3C4-4B0B-A805-9148C12B7E4E</string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>E31033E5-DA73-40A8-A6AE-D84C10AE7827</key>
+		<array/>
+	</dict>
+	<key>createdby</key>
+	<string>Klizzy</string>
+	<key>description</key>
+	<string>Workflow to generate a new iCloud Hide My Mail address</string>
+	<key>disabled</key>
+	<false/>
+	<key>name</key>
+	<string>Hide My Maill</string>
+	<key>objects</key>
+	<array>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>concurrently</key>
+				<false/>
+				<key>escaping</key>
+				<integer>76</integer>
+				<key>script</key>
+				<string>on run argv
+	tell application "System Settings"
+	activate
+	reveal pane id "com.apple.systempreferences.AppleIDSettings*AppleIDSettings"
+
+end tell
+    tell application "System Events"
+        tell application process "System Settings"
+            tell splitter group 1 of group 1 of window 1
+                tell group 2 to tell group 1 to tell scroll area 1 to tell group 3
+                    repeat until UI element 1 exists
+                        delay 0
+                    end repeat
+                    click UI element 1
+                    repeat until UI element 2 exists
+                        delay 0
+                    end repeat
+                    click UI element 2
+                end tell
+            end tell
+            repeat until group 1 of group 1 of UI element 1 of scroll area 1 of sheet 1 of window 1 exists
+                delay 0
+            end repeat
+            tell window 1 to tell sheet 1 to tell scroll area 1 to tell UI element 1
+                tell group 1 of group 1
+                    click UI element 4 of group 1
+                    repeat until text field 1 of group 4 exists
+                        delay 0
+                    end repeat
+                    click text field 1 of group 4
+                    set value of text field 1 of group 4 to argv
+                end tell
+                tell group 1 to tell group 2 to tell group 1
+                    repeat until UI element "Continue" of group 2 exists
+                        delay 0
+                    end repeat
+                    click UI element "Fortfahren" of group 2
+                    repeat until UI element "Copy address" of group 1 exists
+                        delay 0
+                    end repeat
+                    click UI element "Adresse kopieren" of group 1
+                    repeat until UI element "Done" of group 2 exists
+                        delay 0
+                    end repeat
+                    click UI element "Fertig" of group 2
+                    repeat until UI element "Done" of group 1 exists
+                        delay 0
+                    end repeat
+                    click UI element "Done" of group 1
+                end tell
+            end tell
+        end tell
+    end tell
+    tell application "System Settings"
+ 		delay 1		quit	end tell
+end run</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>type</key>
+				<integer>6</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>A6780C8C-DA29-4337-9F49-685D444BF086</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>lastpathcomponent</key>
+				<false/>
+				<key>onlyshowifquerypopulated</key>
+				<false/>
+				<key>removeextension</key>
+				<false/>
+				<key>text</key>
+				<string>iCloud mail has been added to your clipboard</string>
+				<key>title</key>
+				<string>Success!</string>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.output.notification</string>
+			<key>uid</key>
+			<string>E31033E5-DA73-40A8-A6AE-D84C10AE7827</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>browser</key>
+				<string></string>
+				<key>skipqueryencode</key>
+				<true/>
+				<key>skipvarencode</key>
+				<true/>
+				<key>spaces</key>
+				<string></string>
+				<key>url</key>
+				<string>x-apple.systempreferences:com.apple.preference.security</string>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.openurl</string>
+			<key>uid</key>
+			<string>8B5FE991-43A8-420E-8EB0-F99126332A50</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>argumenttype</key>
+				<integer>0</integer>
+				<key>keyword</key>
+				<string>hide</string>
+				<key>subtext</key>
+				<string>Pass your wanted label as argument</string>
+				<key>text</key>
+				<string>hide</string>
+				<key>withspace</key>
+				<true/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.input.keyword</string>
+			<key>uid</key>
+			<string>3E851897-CFD4-4689-8541-85E1EDAF1147</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>conditions</key>
+				<array>
+					<dict>
+						<key>inputstring</key>
+						<string>{var:lang}</string>
+						<key>matchcasesensitive</key>
+						<false/>
+						<key>matchmode</key>
+						<integer>0</integer>
+						<key>matchstring</key>
+						<string>EN</string>
+						<key>outputlabel</key>
+						<string>EN workflow config</string>
+						<key>uid</key>
+						<string>E5950789-89C4-472A-A9A5-EC50CEB910D6</string>
+					</dict>
+					<dict>
+						<key>inputstring</key>
+						<string>{var:lang}</string>
+						<key>matchcasesensitive</key>
+						<false/>
+						<key>matchmode</key>
+						<integer>0</integer>
+						<key>matchstring</key>
+						<string>DE</string>
+						<key>outputlabel</key>
+						<string>DE workflow config</string>
+						<key>uid</key>
+						<string>4D727EA0-A3C4-4B0B-A805-9148C12B7E4E</string>
+					</dict>
+				</array>
+				<key>elselabel</key>
+				<string>else</string>
+				<key>hideelse</key>
+				<false/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.utility.conditional</string>
+			<key>uid</key>
+			<string>3C4D1533-066A-44DD-8D10-2D58CEB9F486</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>conditions</key>
+				<array>
+					<dict>
+						<key>inputstring</key>
+						<string>{var:lang}</string>
+						<key>matchcasesensitive</key>
+						<false/>
+						<key>matchmode</key>
+						<integer>0</integer>
+						<key>matchstring</key>
+						<string>EN</string>
+						<key>outputlabel</key>
+						<string>EN workflow config</string>
+						<key>uid</key>
+						<string>E5950789-89C4-472A-A9A5-EC50CEB910D6</string>
+					</dict>
+					<dict>
+						<key>inputstring</key>
+						<string>{var:lang}</string>
+						<key>matchcasesensitive</key>
+						<false/>
+						<key>matchmode</key>
+						<integer>0</integer>
+						<key>matchstring</key>
+						<string>DE</string>
+						<key>outputlabel</key>
+						<string>DE workflow config</string>
+						<key>uid</key>
+						<string>4D727EA0-A3C4-4B0B-A805-9148C12B7E4E</string>
+					</dict>
+				</array>
+				<key>elselabel</key>
+				<string>else</string>
+				<key>hideelse</key>
+				<true/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.utility.conditional</string>
+			<key>uid</key>
+			<string>D38E1A0C-88F1-41B6-8C60-616E475C7572</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>argument</key>
+				<string>{var:emailAlias}</string>
+				<key>passthroughargument</key>
+				<false/>
+				<key>variables</key>
+				<dict/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.utility.argument</string>
+			<key>uid</key>
+			<string>3BA55F86-8A4D-4179-A06B-0BD1A289DB87</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>argument</key>
+				<string>{query}</string>
+				<key>passthroughargument</key>
+				<true/>
+				<key>variables</key>
+				<dict>
+					<key>emailAlias</key>
+					<string>{query}</string>
+				</dict>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.utility.argument</string>
+			<key>uid</key>
+			<string>1F7A821B-A31C-4324-97D2-527A2122A0A5</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>concurrently</key>
+				<false/>
+				<key>escaping</key>
+				<integer>76</integer>
+				<key>script</key>
+				<string>on run argv
+	tell application "System Settings"
+	activate
+	reveal pane id "com.apple.systempreferences.AppleIDSettings*AppleIDSettings"
+
+end tell
+    tell application "System Events"
+        tell application process "System Settings"
+            tell splitter group 1 of group 1 of window 1
+                tell group 2 to tell group 1 to tell scroll area 1 to tell group 3
+                    repeat until UI element 1 exists
+                        delay 0
+                    end repeat
+                    click UI element 1
+                    repeat until UI element 2 exists
+                        delay 0
+                    end repeat
+                    click UI element 2
+                end tell
+            end tell
+            repeat until group 1 of group 1 of UI element 1 of scroll area 1 of sheet 1 of window 1 exists
+                delay 0
+            end repeat
+            tell window 1 to tell sheet 1 to tell scroll area 1 to tell UI element 1
+                tell group 1 of group 1
+                    click UI element 4 of group 1
+                    repeat until text field 1 of group 4 exists
+                        delay 0
+                    end repeat
+                    click text field 1 of group 4
+                    set value of text field 1 of group 4 to argv
+                end tell
+                tell group 1 to tell group 2 to tell group 1
+                    repeat until UI element "Fortfahren" of group 2 exists
+                        delay 0
+                    end repeat
+                    click UI element "Fortfahren" of group 2
+                    repeat until UI element "Adresse kopieren" of group 1 exists
+                        delay 0
+                    end repeat
+                    click UI element "Adresse kopieren" of group 1
+                    repeat until UI element "Fertig" of group 2 exists
+                        delay 0
+                    end repeat
+                    click UI element "Fertig" of group 2
+                    repeat until UI element "Fertig" of group 1 exists
+                        delay 0
+                    end repeat
+                    click UI element "Fertig" of group 1
+                end tell
+            end tell
+        end tell
+    end tell
+	tell application "System Settings"
+ 		delay 1		quit	end tell
+end run</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>type</key>
+				<integer>6</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>7804CD9C-CC9E-46DA-87C0-70EF1FF5BB95</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>lastpathcomponent</key>
+				<false/>
+				<key>onlyshowifquerypopulated</key>
+				<false/>
+				<key>removeextension</key>
+				<false/>
+				<key>text</key>
+				<string>The configured language "{var:lang}" is currently not supported</string>
+				<key>title</key>
+				<string>Execution failed!</string>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.output.notification</string>
+			<key>uid</key>
+			<string>4CDB0F68-080E-41D9-AD6D-39E69585E5B5</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+	</array>
+	<key>readme</key>
+	<string># alfred-hide-my-mail
+
+---
+
+![Hide-My-Mail.png](icon.png)
+
+
+🎩 Create a new iCloud Hide My Mail address with a specified label via Alfred and have it copied to your clipboard.
+
+
+## Installation
+
+---
+1. Download the `.alfredworkflow` file from the [releases page](#).
+2. Double-click the downloaded file to import it into Alfred 5.
+
+## Usage
+
+---
+1. Open Alfred (default shortcut: `Option + Space`).
+2. Type `hide` followed by the label you want to assign to the new iCloud Hide My Mail address.
+3. Press `Enter`.
+4. Press `CMD + V` to paste the generated iCloud Hide My Mail address.
+
+The workflow will open the MacOS System Settings, navigate to the appropriate section, create a new iCloud Hide My Mail address with the specified label and adds the generate mail to your clipboard.
+
+## Requirements
+
+---
+1. Alfred 5.1 or later
+2. Active [iCloud+](https://support.apple.com/guide/icloud/mm9d9012c9e8/icloud) subscription
+3. MacOS 14.1 or later
+4. Your MacOS system language is supported by the workflow
+
+## Configuration
+
+---
+The workflow currently supports the following languages and config values:
+- English
+  - `EN`
+- German
+  - `DE`
+
+The default setting is `EN`. To change the language, open the Alfred Preferences, navigate to the `Workflows` tab, select the `Hide My Mail` workflow, and click on the `Configure Workflow` button. Here you can change the language setting to `DE` and save the configuration.
+
+## Why?
+
+---
+On some websites you don't get the native icloud+ hide my mail prompt for the email field, so it has to be created manually.
+The complete process is automated with this workflow, so you don't have to click 8-10 times through the system settings to get your generated mail.
+
+## Credits
+
+---
+The main script is heavily inspired by a created Shortcut from [this reddit thread](https://www.reddit.com/r/shortcuts/comments/yp5817/comment/je8o0or/)</string>
+	<key>uidata</key>
+	<dict>
+		<key>1F7A821B-A31C-4324-97D2-527A2122A0A5</key>
+		<dict>
+			<key>xpos</key>
+			<real>245</real>
+			<key>ypos</key>
+			<real>335</real>
+		</dict>
+		<key>3BA55F86-8A4D-4179-A06B-0BD1A289DB87</key>
+		<dict>
+			<key>xpos</key>
+			<real>710</real>
+			<key>ypos</key>
+			<real>325</real>
+		</dict>
+		<key>3C4D1533-066A-44DD-8D10-2D58CEB9F486</key>
+		<dict>
+			<key>xpos</key>
+			<real>340</real>
+			<key>ypos</key>
+			<real>310</real>
+		</dict>
+		<key>3E851897-CFD4-4689-8541-85E1EDAF1147</key>
+		<dict>
+			<key>xpos</key>
+			<real>70</real>
+			<key>ypos</key>
+			<real>305</real>
+		</dict>
+		<key>4CDB0F68-080E-41D9-AD6D-39E69585E5B5</key>
+		<dict>
+			<key>xpos</key>
+			<real>545</real>
+			<key>ypos</key>
+			<real>450</real>
+		</dict>
+		<key>7804CD9C-CC9E-46DA-87C0-70EF1FF5BB95</key>
+		<dict>
+			<key>note</key>
+			<string>Script for DE MacOS system language</string>
+			<key>xpos</key>
+			<real>1040</real>
+			<key>ypos</key>
+			<real>390</real>
+		</dict>
+		<key>8B5FE991-43A8-420E-8EB0-F99126332A50</key>
+		<dict>
+			<key>xpos</key>
+			<real>545</real>
+			<key>ypos</key>
+			<real>295</real>
+		</dict>
+		<key>A6780C8C-DA29-4337-9F49-685D444BF086</key>
+		<dict>
+			<key>note</key>
+			<string>Script for EN MacOS system language</string>
+			<key>xpos</key>
+			<real>1035</real>
+			<key>ypos</key>
+			<real>220</real>
+		</dict>
+		<key>D38E1A0C-88F1-41B6-8C60-616E475C7572</key>
+		<dict>
+			<key>xpos</key>
+			<real>790</real>
+			<key>ypos</key>
+			<real>315</real>
+		</dict>
+		<key>E31033E5-DA73-40A8-A6AE-D84C10AE7827</key>
+		<dict>
+			<key>xpos</key>
+			<real>1290</real>
+			<key>ypos</key>
+			<real>290</real>
+		</dict>
+	</dict>
+	<key>userconfigurationconfig</key>
+	<array>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string>EN</string>
+				<key>placeholder</key>
+				<string>Type "DE" or "EN"</string>
+				<key>required</key>
+				<false/>
+				<key>trim</key>
+				<true/>
+			</dict>
+			<key>description</key>
+			<string>Set the language of your system, so the UI buttons are correctly identified and clicked</string>
+			<key>label</key>
+			<string>MacOS System Language</string>
+			<key>type</key>
+			<string>textfield</string>
+			<key>variable</key>
+			<string>lang</string>
+		</dict>
+	</array>
+	<key>version</key>
+	<string>1.0</string>
+	<key>webaddress</key>
+	<string>https://github.com/Klizzy/alfred-hide-my-mail</string>
+</dict>
+</plist>
