@@ -3,7 +3,14 @@
   <img src=".assets/hide-my-mail.png" alt="Hide My Mail Logo" width="200">
 </p>
 
-🎩 Create a new iCloud Hide My Mail address with a specified label via Alfred and have it copied to your clipboard.
+### 🎩 Create a new iCloud Hide My Mail address with a specified label via Alfred and have it copied to your clipboard.
+
+## Showcase
+> The whole shown process is completed within a couple seconds.
+<p align="center">
+  <img src=".assets/alfred-command.png" alt="Hide My Mail Logo" width="623">
+  <img src=".assets/complete-workflow.gif" alt="Hide My Mail Logo" width="803">
+</p>
 
 
 ## Installation
