@@ -7,8 +7,9 @@
 
 
 ## Installation
-1. Download the `.alfredworkflow` file from the [releases page](#).
+1. Download the latest `.alfredworkflow` file from the [releases page](https://github.com/Klizzy/alfred-hide-my-mail/releases).
 2. Double-click the downloaded file to import it into Alfred 5.
+3. Configure the workflow, if your MacOS system language is not set to English.
 
 ## Usage
 1. Open Alfred (default shortcut: `Option + Space`).
@@ -39,6 +40,11 @@ The default setting is `EN`. To change the language, open the Alfred Preferences
 
 On some websites you don't get the native icloud+ hide my mail prompt for the email field, so it has to be created manually.
 The complete process is automated with this workflow, so you don't have to click 8-10 times through the system settings to get your generated mail.
+
+## Contact & Support
+
+- [Code & Support](https://github.com/Klizzy/alfred-hide-my-mail)
+- [LinkedIn](https://www.linkedin.com/in/steven-zemelka-82807b279/)
 
 ## Credits
 
