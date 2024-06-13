@@ -33,15 +33,15 @@ on run argv
            repeat until UI element "Continue" of group 2 exists
              delay 0
            end repeat
-           click UI element "Fortfahren" of group 2
+           click UI element "Continue" of group 2
            repeat until UI element "Copy address" of group 1 exists
              delay 0
            end repeat
-           click UI element "Adresse kopieren" of group 1
+           click UI element "Copy address" of group 1
            repeat until UI element "Done" of group 2 exists
              delay 0
            end repeat
-           click UI element "Fertig" of group 2
+           click UI element "Done" of group 2
            repeat until UI element "Done" of group 1 exists
              delay 0
            end repeat
