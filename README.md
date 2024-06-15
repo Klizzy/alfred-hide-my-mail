@@ -3,7 +3,7 @@
   <img src=".assets/hide-my-mail.png" alt="Hide My Mail Logo" width="200">
 </p>
 
-### 🎩 Create a new iCloud Hide My Mail address with a specified label via Alfred and have it copied to your clipboard.
+### 🎩 Create a new iCloud Hide My Mail address automatically with an specified label via Alfred and have it copied to your clipboard.
 
 ## Showcase
 > The whole shown process is completed within a couple seconds.
@@ -16,7 +16,6 @@
 ## Installation
 1. Download the latest `.alfredworkflow` file from the [releases page](https://github.com/Klizzy/alfred-hide-my-mail/releases).
 2. Double-click the downloaded file to import it into Alfred 5.
-3. Configure the workflow, if your MacOS system language is not set to English.
 
 ## Usage
 1. Open Alfred (default shortcut: `Option + Space`).
@@ -31,17 +30,11 @@ The workflow will open the MacOS System Settings, navigate to the appropriate se
 1. Alfred 5.1 or later
 2. Active [iCloud+](https://support.apple.com/guide/icloud/mm9d9012c9e8/icloud) subscription
 3. MacOS 14.1 or later
-4. Your MacOS system language is supported by the workflow
 
 ## Configuration
 
-The workflow currently supports the following languages and config values:
-- English
-  - `EN`
-- German
-  - `DE`
-
-The default setting is `EN`. To change the language, open the Alfred Preferences, navigate to the `Workflows` tab, select the `Hide My Mail` workflow, and click on the `Configure Workflow` button. Here you can change the language setting to `DE` and save the configuration.
+You can change the keyword to trigger the workflow by opening the Alfred Preferences, navigating to the `Workflows` tab, selecting the `Hide My Mail` workflow, and clicking on the `Configure Workflow` button. Here you can change the keyword to your desired value.
+- The default keyword is `hide`.
 
 ## Why?
 

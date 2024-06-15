@@ -1,6 +1,7 @@
 on run argv
   tell application "System Settings"
     activate
+    delay 0.5
     reveal pane id "com.apple.systempreferences.AppleIDSettings*AppleIDSettings"
   end tell
   tell application "System Events"
@@ -30,22 +31,22 @@ on run argv
            set value of text field 1 of group 4 to argv
          end tell
          tell group 1 to tell group 2 to tell group 1
-           repeat until UI element "Continue" of group 2 exists
+           repeat until UI element 1 of group 2 exists
              delay 0
            end repeat
-           click UI element "Fortfahren" of group 2
-           repeat until UI element "Copy address" of group 1 exists
+           click UI element 1 of group 2
+           repeat until UI element 1 of group 1 exists
              delay 0
            end repeat
-           click UI element "Adresse kopieren" of group 1
-           repeat until UI element "Done" of group 2 exists
+           click UI element 1 of group 1
+           repeat until UI element 1 of group 2 exists
              delay 0
            end repeat
-           click UI element "Fertig" of group 2
-           repeat until UI element "Done" of group 1 exists
+           click UI element 1 of group 2
+           repeat until UI element 1 of group 1 exists
              delay 0
            end repeat
-           click UI element "Done" of group 1
+           click UI element 1 of group 1
          end tell
        end tell
     end tell
