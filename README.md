@@ -1,4 +1,7 @@
 # alfred-hide-my-mail
+![Download Count](https://img.shields.io/github/downloads/klizzy/alfred-hide-my-mail/total?label=Downloads&style=plastic)
+![Last Release](https://img.shields.io/github/v/release/klizzy/alfred-hide-my-mail?label=Latest%20Release&style=plastic)
+
 <p align="center">
   <img src=".assets/hide-my-mail.png" alt="Hide My Mail Logo" width="200">
 </p>
