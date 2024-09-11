@@ -44,6 +44,16 @@ You can change the keyword to trigger the workflow by opening the Alfred Prefere
 On some websites you don't get the native icloud+ hide my mail prompt for the email field, so it has to be created manually.
 The complete process is automated with this workflow, so you don't have to click 8-10 times through the system settings to get your generated mail.
 
+## Troubleshooting
+
+On some lower spec Macs, the last step can sometimes be not executed correctly while closing the system applications after copying the generated iCloud mail. If that occurs on your Mac, you can fix it by increasing the delay within the workflow script. To do so, follow these steps:
+1. Open the Alfred Preferences
+2. Navigating to the `Workflows` tab, selecting the `Hide My Mail` workflow and double click on the `Run Script` workflow item within the workflow editor
+3. Increase the last delay in seconds at the end of the script, which is currently set to `delay 1`, to `delay 2` or higher
+4. Save the change
+
+In a future release this will be made configurable - so stay stuned!
+
 ## Contact & Support
 
 - [Code & Support](https://github.com/Klizzy/alfred-hide-my-mail)
