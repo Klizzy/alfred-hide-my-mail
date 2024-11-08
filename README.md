@@ -32,7 +32,7 @@ The workflow will open the MacOS System Settings, navigate to the appropriate se
 
 1. Alfred 5.1 or later
 2. Active [iCloud+](https://support.apple.com/guide/icloud/mm9d9012c9e8/icloud) subscription
-3. MacOS 14.1 or later
+3. MacOS Sonoma 14.1 or later - **macOS Sequoia is not [yet](https://github.com/Klizzy/alfred-hide-my-mail/issues/4) supported**
 
 ## Configuration
 
