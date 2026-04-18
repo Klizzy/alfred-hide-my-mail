@@ -28,3 +28,6 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
+# Claude Code
+.claude/
+CLAUDE.md
