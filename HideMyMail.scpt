@@ -12,10 +12,10 @@ on run argv
             delay 0
           end repeat
           click UI element 1
-          repeat until UI element 2 exists
+          repeat until UI element 5 exists
             delay 0
           end repeat
-          click UI element 2
+          click UI element 5
         end tell
       end tell
       repeat until group 1 of group 1 of UI element 1 of scroll area 1 of sheet 1 of window 1 exists
@@ -23,7 +23,7 @@ on run argv
       end repeat
       tell window 1 to tell sheet 1 to tell scroll area 1 to tell UI element 1
          tell group 1 of group 1
-           click UI element 4 of group 1
+           click UI element 5 of group 1
            repeat until text field 1 of group 4 exists
              delay 0
            end repeat
@@ -55,4 +55,4 @@ on run argv
     delay 1
     quit
   end tell
-end run
+end
