@@ -32,7 +32,7 @@ The workflow will open the MacOS System Settings, navigate to the appropriate se
 
 1. Alfred 5.1 or later
 2. Active [iCloud+](https://support.apple.com/guide/icloud/mm9d9012c9e8/icloud) subscription
-3. macOS Sequoia 15.x (later versions are untested and may require UI element adjustments)
+3. macOS Sequoia 15.x or macOS Tahoe 26.x (later versions are untested and may require UI element adjustments)
 
 ## Configuration
 
@@ -43,6 +43,18 @@ You can change the keyword to trigger the workflow by opening the Alfred Prefere
 
 On some websites you don't get the native icloud+ hide my mail prompt for the email field, so it has to be created manually.
 The complete process is automated with this workflow, so you don't have to click 8-10 times through the system settings to get your generated mail.
+
+## Building from source
+
+The workflow is packaged as a zip of `info.plist` + `icon.png` with the
+`.alfredworkflow` extension. To rebuild the bundle after editing:
+
+```sh
+./package.sh
+```
+
+This writes `HideMyMail.alfredworkflow` in the repo root, which Alfred imports
+on double-click.
 
 ## Troubleshooting
 
