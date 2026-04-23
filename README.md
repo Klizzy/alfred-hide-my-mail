@@ -32,7 +32,7 @@ The workflow will open the MacOS System Settings, navigate to the appropriate se
 
 1. Alfred 5.1 or later
 2. Active [iCloud+](https://support.apple.com/guide/icloud/mm9d9012c9e8/icloud) subscription
-3. macOS Sequoia 15.x or macOS Tahoe 26.x (later versions are untested and may require UI element adjustments)
+3. macOS Tahoe 26.x (later versions are untested and may require UI element adjustments)
 
 ## Configuration
 

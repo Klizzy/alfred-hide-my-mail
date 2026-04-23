@@ -1,11 +1,13 @@
 on run argv
   set labelText to (argv as string)
 
+  -- Quit System Settings first so we always start from a clean state.
   if application "System Settings" is running then
     tell application "System Settings" to quit
     delay 0.5
   end if
 
+  -- Open System Settings and go to the iCloud pane.
   tell application "System Settings"
     activate
     delay 0.5
@@ -16,6 +18,7 @@ on run argv
     tell application process "System Settings"
       set featuresGroup to group 3 of scroll area 1 of group 1 of group 3 of splitter group 1 of group 1 of window 1
 
+      -- Click the Hide My Email tile under iCloud+ Features.
       set hideTile to missing value
       set waitCount to 0
       repeat until (hideTile is not missing value) or waitCount > 100
@@ -39,6 +42,7 @@ on run argv
       end if
       perform action "AXPress" of hideTile
 
+      -- Click "Create New Address".
       set waitCount to 0
       repeat until (exists button "Create New Address" of group 1 of group 1 of group 1 of UI element 1 of scroll area 1 of sheet 1 of window 1) or waitCount > 100
         delay 0.1
@@ -46,6 +50,7 @@ on run argv
       end repeat
       perform action "AXPress" of button "Create New Address" of group 1 of group 1 of group 1 of UI element 1 of scroll area 1 of sheet 1 of window 1
 
+      -- Type the label into the Label field.
       set waitCount to 0
       repeat until (exists text field 1 of group 4 of group 1 of group 1 of UI element 1 of scroll area 1 of sheet 1 of window 1) or waitCount > 100
         delay 0.1
@@ -56,9 +61,11 @@ on run argv
         set value to labelText
       end tell
 
+      -- Click "Continue" to generate the address.
       delay 0.3
       perform action "AXPress" of button "Continue" of group 2 of group 1 of group 2 of group 1 of UI element 1 of scroll area 1 of sheet 1 of window 1
 
+      -- Click "Copy Address" on the "All Set" screen to copy to the clipboard.
       set waitCount to 0
       repeat until (exists button "Copy Address" of group 1 of group 1 of group 2 of group 1 of UI element 1 of scroll area 1 of sheet 1 of window 1) or waitCount > 100
         delay 0.1
@@ -66,11 +73,13 @@ on run argv
       end repeat
       perform action "AXPress" of button "Copy Address" of group 1 of group 1 of group 2 of group 1 of UI element 1 of scroll area 1 of sheet 1 of window 1
 
+      -- Click "Done" to close the sheet.
       delay 0.3
       perform action "AXPress" of button "Done" of group 2 of group 1 of group 2 of group 1 of UI element 1 of scroll area 1 of sheet 1 of window 1
     end tell
   end tell
 
+  -- Quit System Settings.
   tell application "System Settings"
     delay 0.5
     quit
