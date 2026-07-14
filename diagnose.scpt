@@ -32,65 +32,77 @@ on run argv
     end try
     delay 1.5
 
-    tell application "System Events"
-        tell application process "System Settings"
-            set win to window 1
-
-            set end of out to "--- window 1 top-level children ---"
-            set end of out to my dumpChildren(win)
-
-            set end of out to ""
-            set end of out to "--- candidate grid: group 3 of scroll area 1 of group 1 of group 2 of splitter group 1 of group 1 of window 1 (Sequoia) ---"
-            try
-                set end of out to my dumpChildren(group 3 of scroll area 1 of group 1 of group 2 of splitter group 1 of group 1 of win)
-            on error e
-                set end of out to "  n/a: " & e
-            end try
-
-            set end of out to ""
-            set end of out to "--- candidate grid: group 3 of scroll area 1 of group 1 of group 3 of splitter group 1 of group 1 of window 1 (Tahoe) ---"
-            try
-                set tahoeGrid to group 3 of scroll area 1 of group 1 of group 3 of splitter group 1 of group 1 of win
-                set end of out to my dumpChildren(tahoeGrid)
-            on error e
-                set end of out to "  n/a: " & e
-            end try
-
-            -- Best-effort: open the sheet so its buttons can be captured.
-            set end of out to ""
-            set end of out to "--- opening creation sheet (best effort) ---"
-            try
-                set tileHit to missing value
+    set win to missing value
+    try
+        tell application "System Events"
+            tell application process "System Settings"
                 try
-                    set tileHit to (first button of (entire contents of win) whose value of attribute "AXIdentifier" is "six-pack-card-Hide My Email")
-                end try
-                if tileHit is missing value then
-                    try
-                        set tileHit to UI element 5 of (group 3 of scroll area 1 of group 1 of group 2 of splitter group 1 of group 1 of win)
-                    end try
-                end if
-                if tileHit is not missing value then
-                    try
-                        perform action "AXPress" of tileHit
-                    on error
-                        click tileHit
-                    end try
-                    delay 1.5
-                end if
-            on error e
-                set end of out to "  could not press tile: " & e
-            end try
+                    set win to window 1
 
-            set end of out to ""
-            set end of out to "--- sheet: group 1 of group 1 of group 1 of UI element 1 of scroll area 1 of sheet 1 (Create/Label area) ---"
-            try
-                set sheetRoot to UI element 1 of scroll area 1 of sheet 1 of win
-                set end of out to my dumpChildren(group 1 of group 1 of group 1 of sheetRoot)
+                    set end of out to "--- window 1 top-level children ---"
+                    set end of out to my dumpChildren(win)
+                on error e
+                    set end of out to "ERROR reading window 1: " & e
+                end try
+
+                set end of out to ""
+                set end of out to "--- candidate grid: group 3 of scroll area 1 of group 1 of group 2 of splitter group 1 of group 1 of window 1 (Sequoia) ---"
+                try
+                    set end of out to my dumpChildren(group 3 of scroll area 1 of group 1 of group 2 of splitter group 1 of group 1 of win)
+                on error e
+                    set end of out to "  n/a: " & e
+                end try
+
+                set end of out to ""
+                set end of out to "--- candidate grid: group 3 of scroll area 1 of group 1 of group 3 of splitter group 1 of group 1 of window 1 (Tahoe) ---"
+                try
+                    set tahoeGrid to group 3 of scroll area 1 of group 1 of group 3 of splitter group 1 of group 1 of win
+                    set end of out to my dumpChildren(tahoeGrid)
+                on error e
+                    set end of out to "  n/a: " & e
+                end try
+
+                -- Best-effort: open the sheet so its buttons can be captured.
+                set end of out to ""
+                set end of out to "--- opening creation sheet (best effort) ---"
+                try
+                    set tileHit to missing value
+                    try
+                        set tileHit to (first button of (entire contents of win) whose value of attribute "AXIdentifier" is "six-pack-card-Hide My Email")
+                    end try
+                    if tileHit is missing value then
+                        try
+                            set tileHit to UI element 5 of (group 3 of scroll area 1 of group 1 of group 2 of splitter group 1 of group 1 of win)
+                        end try
+                    end if
+                    if tileHit is not missing value then
+                        try
+                            perform action "AXPress" of tileHit
+                        on error
+                            click tileHit
+                        end try
+                        delay 1.5
+                    end if
+                on error e
+                    set end of out to "  could not press tile: " & e
+                end try
+
+                set end of out to ""
+                set end of out to "--- sheet: group 1 of group 1 of group 1 of UI element 1 of scroll area 1 of sheet 1 (Create/Label area) ---"
+                set sheetRoot to missing value
+                try
+                    set sheetRoot to UI element 1 of scroll area 1 of sheet 1 of win
+                    set end of out to my dumpChildren(group 1 of group 1 of group 1 of sheetRoot)
+                on error e
+                    set end of out to "  no sheet captured: " & e
+                end try
+
                 set end of out to ""
                 set end of out to "  group 4 (label area):"
                 try
                     set end of out to my dumpChildren(group 4 of group 1 of group 1 of sheetRoot)
                 end try
+
                 set end of out to ""
                 set end of out to "--- sheet: confirm area group 1 of group 2 of group 1 of UI element 1 ... ---"
                 try
@@ -100,11 +112,11 @@ on run argv
                     set end of out to "  group 2 of confirm area:"
                     set end of out to my dumpChildren(group 2 of confirmArea)
                 end try
-            on error e
-                set end of out to "  no sheet captured: " & e
-            end try
+            end tell
         end tell
-    end tell
+    on error e
+        set end of out to "ERROR during UI walk: " & e
+    end try
 
     set outputText to my joinLines(out)
     set outputPath to (POSIX path of (path to desktop)) & "hide-my-mail-diagnosis.txt"
