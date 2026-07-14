@@ -34,6 +34,32 @@
 				<false/>
 			</dict>
 		</array>
+		<key>E1F2A3B4-C5D6-E7F8-A9B0-C1D2E3F4A5B6</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>F2A3B4C5-D6E7-F8A9-B0C1-D2E3F4A5B6C7</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>F2A3B4C5-D6E7-F8A9-B0C1-D2E3F4A5B6C7</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>A3B4C5D6-E7F8-A9B0-C1D2-E3F4A5B6C7D8</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
 	</dict>
 	<key>createdby</key>
 	<string>Klizzy</string>
@@ -74,68 +100,11 @@
 				<key>escaping</key>
 				<integer>76</integer>
 				<key>script</key>
-				<string>on run argv
-  tell application "System Settings"
-    activate
-    delay 0.5
-    reveal pane id "com.apple.systempreferences.AppleIDSettings*AppleIDSettings"
-  end tell
-  tell application "System Events"
-    tell application process "System Settings"
-      tell splitter group 1 of group 1 of window 1
-        tell group 2 to tell group 1 to tell scroll area 1 to tell group 3
-          repeat until UI element 1 exists
-            delay 0
-          end repeat
-          click UI element 1
-          repeat until UI element 5 exists
-            delay 0
-          end repeat
-          click UI element 5
-        end tell
-      end tell
-      repeat until group 1 of group 1 of UI element 1 of scroll area 1 of sheet 1 of window 1 exists
-        delay 0
-      end repeat
-      tell window 1 to tell sheet 1 to tell scroll area 1 to tell UI element 1
-         tell group 1 of group 1
-           click UI element 5 of group 1
-           repeat until text field 1 of group 4 exists
-             delay 0
-           end repeat
-           click text field 1 of group 4
-           set value of text field 1 of group 4 to argv
-         end tell
-         tell group 1 to tell group 2 to tell group 1
-           repeat until UI element 1 of group 2 exists
-             delay 0
-           end repeat
-           click UI element 1 of group 2
-           repeat until UI element 1 of group 1 exists
-             delay 0
-           end repeat
-           click UI element 1 of group 1
-           repeat until UI element 1 of group 2 exists
-             delay 0
-           end repeat
-           click UI element 1 of group 2
-           repeat until UI element 1 of group 1 exists
-             delay 0
-           end repeat
-           click UI element 1 of group 1
-         end tell
-       end tell
-    end tell
-  end tell
-  tell application "System Settings"
-    delay 1
-    quit
-  end tell
-end run</string>
+				<string></string>
 				<key>scriptargtype</key>
 				<integer>1</integer>
 				<key>scriptfile</key>
-				<string></string>
+				<string>HideMyMail.scpt</string>
 				<key>type</key>
 				<integer>6</integer>
 			</dict>
@@ -156,14 +125,79 @@ end run</string>
 				<key>removeextension</key>
 				<false/>
 				<key>text</key>
-				<string>iCloud mail has been added to your clipboard</string>
+				<string>{query}</string>
 				<key>title</key>
-				<string>Success!</string>
+				<string>Hide My Mail</string>
 			</dict>
 			<key>type</key>
 			<string>alfred.workflow.output.notification</string>
 			<key>uid</key>
 			<string>36478728-1765-4DAA-9749-69D0E88C2B3B</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>argumenttype</key>
+				<integer>2</integer>
+				<key>keyword</key>
+				<string>hide-diagnose</string>
+				<key>subtext</key>
+				<string>Dump the System Settings UI hierarchy for debugging</string>
+				<key>text</key>
+				<string>Diagnose Hide My Mail</string>
+				<key>withspace</key>
+				<false/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.input.keyword</string>
+			<key>uid</key>
+			<string>E1F2A3B4-C5D6-E7F8-A9B0-C1D2E3F4A5B6</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>concurrently</key>
+				<false/>
+				<key>escaping</key>
+				<integer>76</integer>
+				<key>script</key>
+				<string></string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string>diagnose.scpt</string>
+				<key>type</key>
+				<integer>6</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>F2A3B4C5-D6E7-F8A9-B0C1-D2E3F4A5B6C7</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>lastpathcomponent</key>
+				<false/>
+				<key>onlyshowifquerypopulated</key>
+				<false/>
+				<key>removeextension</key>
+				<false/>
+				<key>text</key>
+				<string>{query}</string>
+				<key>title</key>
+				<string>Hide My Mail Diagnosis</string>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.output.notification</string>
+			<key>uid</key>
+			<string>A3B4C5D6-E7F8-A9B0-C1D2-E3F4A5B6C7D8</string>
 			<key>version</key>
 			<integer>1</integer>
 		</dict>
@@ -250,11 +284,34 @@ The main script is heavily inspired by a created Shortcut from [this reddit thre
 		<key>AC04F4E8-31B4-482D-A1BA-FADCC7CCDC77</key>
 		<dict>
 			<key>note</key>
-			<string>Applescript - GUI Scripting</string>
+			<string>AppleScript - Config-driven GUI Scripting (v2.0)</string>
 			<key>xpos</key>
 			<real>695</real>
 			<key>ypos</key>
 			<real>355</real>
+		</dict>
+		<key>E1F2A3B4-C5D6-E7F8-A9B0-C1D2E3F4A5B6</key>
+		<dict>
+			<key>xpos</key>
+			<real>365</real>
+			<key>ypos</key>
+			<real>535</real>
+		</dict>
+		<key>F2A3B4C5-D6E7-F8A9-B0C1-D2E3F4A5B6C7</key>
+		<dict>
+			<key>note</key>
+			<string>AppleScript - UI Hierarchy Dump</string>
+			<key>xpos</key>
+			<real>695</real>
+			<key>ypos</key>
+			<real>535</real>
+		</dict>
+		<key>A3B4C5D6-E7F8-A9B0-C1D2-E3F4A5B6C7D8</key>
+		<dict>
+			<key>xpos</key>
+			<real>1020</real>
+			<key>ypos</key>
+			<real>535</real>
 		</dict>
 	</dict>
 	<key>userconfigurationconfig</key>
@@ -282,7 +339,7 @@ The main script is heavily inspired by a created Shortcut from [this reddit thre
 		</dict>
 	</array>
 	<key>version</key>
-	<string>1.2</string>
+	<string>2.0</string>
 	<key>webaddress</key>
 	<string>https://github.com/Klizzy/alfred-hide-my-mail</string>
 </dict>
