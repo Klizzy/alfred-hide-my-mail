@@ -32,12 +32,30 @@ The workflow will open the MacOS System Settings, navigate to the appropriate se
 
 1. Alfred 5.1 or later
 2. Active [iCloud+](https://support.apple.com/guide/icloud/mm9d9012c9e8/icloud) subscription
-3. macOS Sequoia 15.x (later versions are untested and may require UI element adjustments)
+3. macOS:
+
+| macOS | Status |
+|-------|--------|
+| Sequoia 15.x | ✅ Tested |
+| Tahoe 26.x | 🧪 Community-reported working (please report issues with `hide-diagnose`) |
+| Other versions | ⚠️ Untested — run `hide-diagnose` and open an issue to add support |
+
+The workflow auto-detects your macOS version and loads the matching UI map from `ui-maps/`. If your version isn't mapped yet, it falls back to the newest map and warns you.
 
 ## Configuration
 
 You can change the keyword to trigger the workflow by opening the Alfred Preferences, navigating to the `Workflows` tab, selecting the `Hide My Mail` workflow, and clicking on the `Configure Workflow` button. Here you can change the keyword to your desired value.
 - The default keyword is `hide`.
+
+## Diagnostics
+
+If the workflow stops working after a macOS update, help get it fixed:
+
+1. Open Alfred and run `hide-diagnose` (no argument).
+2. It writes `~/Desktop/hide-my-mail-diagnosis.txt` with the current System Settings UI layout.
+3. Open a [GitHub issue](https://github.com/Klizzy/alfred-hide-my-mail/issues) and attach that file.
+
+The maintainer can turn that dump into an updated `ui-maps/<name>-<version>.plist` — usually with no script change.
 
 ## Why?
 
@@ -46,13 +64,23 @@ The complete process is automated with this workflow, so you don't have to click
 
 ## Troubleshooting
 
-On some lower spec Macs, the last step can sometimes be not executed correctly while closing the system applications after copying the generated iCloud mail. If that occurs on your Mac, you can fix it by increasing the delay within the workflow script. To do so, follow these steps:
-1. Open the Alfred Preferences
-2. Navigating to the `Workflows` tab, selecting the `Hide My Mail` workflow and double click on the `Run Script` workflow item within the workflow editor
-3. Increase the last delay in seconds at the end of the script, which is currently set to `delay 1`, to `delay 2` or higher
-4. Save the change
+**Nothing gets copied / System Settings just opens.** Your macOS version likely shifted the UI. Run `hide-diagnose` and open an issue (see Diagnostics).
 
-In a future release this will be made configurable - so stay stuned!
+**"System Settings got an error" / accessibility permission.** macOS may not prompt for Accessibility permission automatically. Grant it manually: System Settings → Privacy & Security → Accessibility → enable Alfred. If it's already listed but not working, remove and re-add it (or run `tccutil reset Accessibility` in Terminal and re-trigger).
+
+**A leftover System Settings sheet from a previous run.** The workflow now quits System Settings before it starts, which clears this automatically.
+
+**Last step doesn't complete on slower Macs.** Increase the final delay: open Alfred Preferences → Workflows → Hide My Mail → double-click the `Run Script` node and raise the trailing `delay 1` to `delay 2` (or higher).
+
+## Building from source
+
+The workflow bundles `info.plist`, `icon.png`, both scripts, and `ui-maps/`. Rebuild the `.alfredworkflow` after editing:
+
+```sh
+./package.sh
+```
+
+This writes `HideMyMail.alfredworkflow` in the repo root, which Alfred imports on double-click.
 
 ## Contact & Support
 
