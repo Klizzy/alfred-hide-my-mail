@@ -156,7 +156,11 @@ on findElement(parentElement, searchIdentifier, searchRole, roleIndex, fallbackI
                     end repeat
                 end if
 
-                if fallbackIndex > 0 then return UI element fallbackIndex of parentElement
+                if fallbackIndex > 0 then
+                    set candidateEl to UI element fallbackIndex of parentElement
+                    get role of candidateEl -- forces existence; errors (and retries) if not present yet
+                    return candidateEl
+                end if
 
                 if (count of nameList) > 0 then
                     repeat with b in (buttons of parentElement)
