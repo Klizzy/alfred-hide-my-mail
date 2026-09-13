@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.3
+
+### macOS Tahoe Support
+
+Complete rewrite of the AppleScript automation to support macOS Tahoe 26.x, which introduced significant System Settings UI changes. The new script uses more robust element discovery and explicit process management.
+
+**Changes:**
+- Rewrote UI navigation to dynamically locate "iCloud+ Features" section by searching for the static text instead of relying on fixed element indices
+- Added AXIdentifier-based button detection for the "Hide My Email" card with fallback to button index
+- Implemented proper process lifecycle management with `killall` before opening settings and cleanup after completion
+- Added sheet index detection to handle multiple concurrent sheets
+- Improved error handling and timeout mechanisms throughout the workflow
+- Updated README to require macOS Tahoe 26.x and document Accessibility permission requirement
+
+**Note:** macOS Sequoia 15.x users should continue using v1.2.
+
 ## v1.2
 
 ### macOS Sequoia Support
