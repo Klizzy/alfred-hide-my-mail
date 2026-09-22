@@ -21,9 +21,10 @@ property elementCount : 0
 property report : {}
 
 -- BEGIN SHARED NAVIGATION
+----------------------------------------------------------------------
 -- Identical in src/hide-my-mail.applescript and src/diagnose.applescript. Edit it HERE, then run
 -- `bash tests/sync-shared-block.sh`; tests/headless.sh fails when the two copies differ.
--- Uses kMaxTicks from the enclosing script (100 ticks = 10 s here, 50 = 5 s in diagnose).
+-- Uses kMaxTicks from the enclosing script (100 ticks = 10 s in hide-my-mail.applescript, 50 = 5 s in diagnose.applescript).
 ----------------------------------------------------------------------
 
 property kICloudPaneId : "com.apple.systempreferences.AppleIDSettings:icloud"
@@ -82,7 +83,11 @@ on openICloudPane(contentGroupIndex)
 		return
 	end if
 	my navNote("no iCloud+ grid after reveal (window: " & my windowTitle() & "); selecting the iCloud sidebar row")
-	my selectSidebarRow(kICloudPaneId)
+	if my selectSidebarRow(kICloudPaneId) then
+		my navNote("sidebar row " & kICloudPaneId & " selected")
+	else
+		my navNote("no sidebar row with id " & kICloudPaneId)
+	end if
 	if my waitForICloudGrid(contentGroupIndex, kMaxTicks) then
 		my navNote("iCloud+ cards: " & my cardIdsText(contentGroupIndex))
 		return
@@ -104,6 +109,7 @@ on pressHideMyEmailTile(contentGroupIndex, useAXPress)
 				my navNote("pressed " & aid)
 				repeat with j from 1 to kMaxTicks
 					if my hideMyEmailSheetOpen() then exit repeat
+					if j ≥ kMaxTicks then my navNote("after pressing " & aid & ": sheet open: " & (my anySheetOpen() as text) & "; sheet text: " & my sheetFirstText())
 					my waitTick(j, "Hide My Email sheet (after pressing " & aid & ")")
 				end repeat
 				my navNote("Hide My Email sheet open")
@@ -113,9 +119,9 @@ on pressHideMyEmailTile(contentGroupIndex, useAXPress)
 		delay 0.1
 	end repeat
 
-	set ids to my cardIdsText(contentGroupIndex)
-	my navNote("no known Hide My Email id among: " & ids & " — trying the cards by sheet shape")
+	my navNote("no known Hide My Email id among: " & my cardIdsText(contentGroupIndex) & " — trying the cards by sheet shape")
 	my waitForSettledGrid(contentGroupIndex)
+	set ids to my cardIdsText(contentGroupIndex)
 	set cands to my hideMyEmailCandidates(contentGroupIndex)
 	repeat with idx from (count of cands) to 1 by -1
 		set b to item idx of cands
@@ -136,7 +142,11 @@ on pressHideMyEmailTile(contentGroupIndex, useAXPress)
 			try
 				tell application "System Settings" to reveal pane id kICloudPaneId
 			end try
-			if not my waitForICloudGrid(contentGroupIndex, kMaxTicks) then error "Timeout waiting for iCloud pane after dismissing " & aid
+			if not my waitForICloudGrid(contentGroupIndex, 30) then
+				my navNote("no iCloud+ grid after re-reveal; selecting the iCloud sidebar row")
+				my selectSidebarRow(kICloudPaneId)
+				if not my waitForICloudGrid(contentGroupIndex, kMaxTicks) then error "Timeout waiting for iCloud pane after dismissing " & aid
+			end if
 		end if
 	end repeat
 	error "Hide My Email tile not found among the iCloud+ cards (" & ids & ")"
@@ -354,6 +364,7 @@ on runSelfTest()
 	my check(results, "roleToClass(AXSplitGroup) is splitter group", my roleToClass("AXSplitGroup") is "splitter group")
 	my check(results, "roleToClass(AXStaticText) is static text", my roleToClass("AXStaticText") is "static text")
 	my check(results, "roleToClass(unknown) is UI element", my roleToClass("AXSomethingNew") is "UI element")
+	my check(results, "roleToClass(AXCell) is UI element (System Events has no cell class)", my roleToClass("AXCell") is "UI element")
 	my check(results, "shorten keeps short text", my shorten("abc", 10) is "abc")
 	my check(results, "shorten truncates with ellipsis", my shorten("abcdefghij", 5) is "abcde…")
 	my check(results, "shorten flattens newlines", my shorten("a" & linefeed & "b", 10) is "a b")
@@ -414,7 +425,8 @@ on roleToClass(axRole)
 	if axRole is "AXOutline" then return "outline"
 	if axRole is "AXTable" then return "table"
 	if axRole is "AXRow" then return "row"
-	if axRole is "AXCell" then return "cell"
+	-- No AXCell entry on purpose: System Events has no `cell` class, so AXCell falls through to "UI element"
+	-- below — a dumped `cell 1 of …` address would not compile.
 	if axRole is "AXToolbar" then return "toolbar"
 	if axRole is "AXScrollBar" then return "scroll bar"
 	if axRole is "AXTabGroup" then return "tab group"
