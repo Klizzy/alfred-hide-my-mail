@@ -241,13 +241,14 @@ The workflow will open the MacOS System Settings, navigate to the appropriate se
 ---
 1. Alfred 5.1 or later
 2. Active [iCloud+](https://support.apple.com/guide/icloud/mm9d9012c9e8/icloud) subscription
-3. Accessibility permission for Alfred (System Settings → Privacy &amp; Security → Accessibility)
-4. macOS Sequoia 15.x or Tahoe 26.x
+3. macOS Sequoia 15.x or Tahoe 26.x
 
 ## Diagnostics
 
 ---
 The notification shows the created address, or `Failed: …` with the step. On failure a diagnosis file is written to `~/Desktop/hide-my-mail-diagnosis.txt` — attach it to a GitHub issue. Run `hide-diagnose` to create it on demand.
+
+If System Settings just opens and nothing happens, make sure Alfred is enabled under System Settings → Privacy &amp; Security → Accessibility.
 
 ## Configuration
 

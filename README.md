@@ -32,8 +32,7 @@ The workflow will open the MacOS System Settings, navigate to the appropriate se
 
 1. Alfred 5.1 or later
 2. Active [iCloud+](https://support.apple.com/guide/icloud/mm9d9012c9e8/icloud) subscription
-3. **Accessibility permission for Alfred**: System Settings → Privacy & Security → Accessibility → enable Alfred. macOS does not always prompt for this.
-4. macOS:
+3. macOS:
 
 | macOS | Status |
 |-------|--------|
@@ -63,7 +62,7 @@ The complete process is automated with this workflow, so you don't have to click
 
 ## Troubleshooting
 
-**"Failed: Timeout waiting for …" right at the first step / System Settings just opens.** Almost always missing Accessibility permission for Alfred (see Requirements). If Alfred is already listed, remove and re-add it, or run `tccutil reset Accessibility com.runningwithcrayons.Alfred` in Terminal and trigger the workflow again.
+**"Failed: Timeout waiting for …" right at the first step / System Settings just opens.** Alfred needs Accessibility permission to click through System Settings. Most Alfred users already have it (Snippets and Clipboard History ask for it), and macOS normally prompts on first use — if it didn't, enable it under System Settings → Privacy & Security → Accessibility. If Alfred is already listed, remove and re-add it, or run `tccutil reset Accessibility com.runningwithcrayons.Alfred` in Terminal and trigger the workflow again.
 
 **Works in Terminal but not from Alfred (or vice versa).** Accessibility permission is per app. Grant it to Alfred *and* to your terminal app if you use both.
 
