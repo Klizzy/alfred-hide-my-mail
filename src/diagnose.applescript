@@ -4,8 +4,9 @@
 -- accessibility tree with AppleScript-style addressing on every line, so a maintainer can update the
 -- element paths in hide-my-mail.applescript without access to the reporter's Mac.
 --
---   (no args)              full mode: restart System Settings, open the iCloud pane, open the Hide My Email
---                          sheet (nothing is created), dump, quit. This is what the `hide-diagnose` keyword runs.
+--   (no args)              full mode: restart System Settings, open the iCloud pane, press the Hide My Email
+--                          card (nothing is created), report each step and the opened sheet, dump, quit.
+--                          This is what the `hide-diagnose` keyword runs.
 --   --capture <context>    capture mode: dump whatever is on screen now. Used by hide-my-mail.applescript on
 --                          failure. Does not restart or quit System Settings.
 --   --selftest             headless checks
@@ -18,6 +19,292 @@ property kMaxTicks : 50 -- 5 s per wait in full mode
 
 property elementCount : 0
 property report : {}
+
+-- BEGIN SHARED NAVIGATION
+-- Identical in src/hide-my-mail.applescript and src/diagnose.applescript. Edit it HERE, then run
+-- `bash tests/sync-shared-block.sh`; tests/headless.sh fails when the two copies differ.
+-- Uses kMaxTicks from the enclosing script (100 ticks = 10 s here, 50 = 5 s in diagnose).
+----------------------------------------------------------------------
+
+property kICloudPaneId : "com.apple.systempreferences.AppleIDSettings:icloud"
+property kTilePrefix : "six-pack-card-"
+-- AXIdentifiers of the Hide My Email card in the iCloud+ Features grid. The suffix is the card's visible
+-- title, so it is localised, and Apple writes "E‑Mail" with U+2011 NON-BREAKING HYPHEN — both hyphen variants
+-- are listed. en/de: from live dumps (Sequoia 15.8, Tahoe 26.6). fr/es: Apple's marketing names, unverified.
+property kHideMyEmailTileIds : {"six-pack-card-Hide My Email", "six-pack-card-E‑Mail-Adresse verbergen", "six-pack-card-E-Mail-Adresse verbergen", "six-pack-card-Masquer mon adresse e‑mail", "six-pack-card-Masquer mon adresse e-mail", "six-pack-card-Ocultar mi correo electrónico"}
+property kSettleTicks : 10 -- the card count must be unchanged for 10 x 0.1 s before guessing by sheet shape
+property navLog : {}
+
+-- One line per navigation step. The main script hands the log to the failure diagnosis, diagnose prints it.
+on navNote(msg)
+	set end of navLog to (msg as text)
+end navNote
+
+on navLogText()
+	set AppleScript's text item delimiters to linefeed
+	set s to navLog as text
+	set AppleScript's text item delimiters to ""
+	return s
+end navLogText
+
+-- Call at the end of a `repeat with i from 1 to kMaxTicks` wait loop: sleeps 0.1 s, errors on the last tick.
+on waitTick(i, stepName)
+	if i ≥ kMaxTicks then error "Timeout waiting for " & stepName
+	delay 0.1
+end waitTick
+
+-- Content column of the System Settings split view: Sequoia 15 hosts it in group 2, Tahoe 26 in group 3.
+on contentGroupIndexFor(major)
+	if major ≥ 26 then return 3
+	return 2
+end contentGroupIndexFor
+
+-- Reveal the iCloud pane and wait until the iCloud+ Features grid is on screen. `exists window 1` is not a
+-- readiness signal: on a cold start System Settings still shows the pane it was closed on for a moment.
+-- Fallback: select the sidebar row that carries the pane id (locale independent, no positional clicks).
+on openICloudPane(contentGroupIndex)
+	tell application "System Settings"
+		try
+			reveal pane id kICloudPaneId
+			my navNote("reveal pane " & kICloudPaneId & ": ok")
+		on error e
+			my navNote("reveal pane " & kICloudPaneId & ": FAILED (" & e & ")")
+		end try
+	end tell
+	repeat with i from 1 to kMaxTicks
+		tell application "System Events" to tell application process "System Settings"
+			if (exists window 1) then exit repeat
+		end tell
+		my waitTick(i, "System Settings window")
+	end repeat
+	if my waitForICloudGrid(contentGroupIndex, 30) then
+		my navNote("iCloud+ cards: " & my cardIdsText(contentGroupIndex))
+		return
+	end if
+	my navNote("no iCloud+ grid after reveal (window: " & my windowTitle() & "); selecting the iCloud sidebar row")
+	my selectSidebarRow(kICloudPaneId)
+	if my waitForICloudGrid(contentGroupIndex, kMaxTicks) then
+		my navNote("iCloud+ cards: " & my cardIdsText(contentGroupIndex))
+		return
+	end if
+	error "Timeout waiting for iCloud pane (window: " & my windowTitle() & ")"
+end openICloudPane
+
+-- Open the Hide My Email sheet and return the pressed card's id.
+-- Pass 1 (up to 3 s, the cards render asynchronously): the card whose id is in kHideMyEmailTileIds.
+-- Pass 2 (unknown locale): once the grid stopped changing, press the cards last-to-first and keep the first
+-- whose sheet has the Hide My Email shape; dismiss the others. The error lists every card id so the
+-- notification alone tells a maintainer which id to add to kHideMyEmailTileIds.
+on pressHideMyEmailTile(contentGroupIndex, useAXPress)
+	repeat 30 times
+		repeat with b in my hideMyEmailCandidates(contentGroupIndex)
+			set aid to my tileId(b)
+			if aid is in kHideMyEmailTileIds then
+				my pressTile(b, useAXPress)
+				my navNote("pressed " & aid)
+				repeat with j from 1 to kMaxTicks
+					if my hideMyEmailSheetOpen() then exit repeat
+					my waitTick(j, "Hide My Email sheet (after pressing " & aid & ")")
+				end repeat
+				my navNote("Hide My Email sheet open")
+				return aid
+			end if
+		end repeat
+		delay 0.1
+	end repeat
+
+	set ids to my cardIdsText(contentGroupIndex)
+	my navNote("no known Hide My Email id among: " & ids & " — trying the cards by sheet shape")
+	my waitForSettledGrid(contentGroupIndex)
+	set cands to my hideMyEmailCandidates(contentGroupIndex)
+	repeat with idx from (count of cands) to 1 by -1
+		set b to item idx of cands
+		set aid to my tileId(b)
+		my pressTile(b, useAXPress)
+		repeat 30 times
+			if my anySheetOpen() then exit repeat
+			delay 0.1
+		end repeat
+		if my hideMyEmailSheetOpen() then
+			my navNote("pressed " & aid & ": sheet shape matches Hide My Email")
+			return aid
+		end if
+		my navNote("pressed " & aid & ": not it (sheet text: " & my sheetFirstText() & ")")
+		if my anySheetOpen() then my dismissSheet()
+		if not my waitForICloudGrid(contentGroupIndex, 10) then
+			-- The card navigated away (e.g. Family). Come back to the iCloud pane.
+			try
+				tell application "System Settings" to reveal pane id kICloudPaneId
+			end try
+			if not my waitForICloudGrid(contentGroupIndex, kMaxTicks) then error "Timeout waiting for iCloud pane after dismissing " & aid
+		end if
+	end repeat
+	error "Hide My Email tile not found among the iCloud+ cards (" & ids & ")"
+end pressHideMyEmailTile
+
+-- Buttons of the iCloud+ Features grid whose AXIdentifier starts with kTilePrefix, in grid order.
+-- {} when the grid is not on screen (other pane, System Settings not running, no Accessibility).
+on hideMyEmailCandidates(contentGroupIndex)
+	set found to {}
+	try
+		tell application "System Events" to tell application process "System Settings"
+			tell group 3 of scroll area 1 of group 1 of group contentGroupIndex of splitter group 1 of group 1 of window 1
+				repeat with b in buttons
+					if (my tileId(b)) starts with kTilePrefix then set end of found to contents of b
+				end repeat
+			end tell
+		end tell
+	end try
+	return found
+end hideMyEmailCandidates
+
+on tileId(b)
+	try
+		tell application "System Events"
+			set aid to value of attribute "AXIdentifier" of b
+			if aid is missing value then return ""
+			return aid as text
+		end tell
+	end try
+	return ""
+end tileId
+
+on cardIdsText(contentGroupIndex)
+	set ids to {}
+	repeat with b in my hideMyEmailCandidates(contentGroupIndex)
+		set end of ids to my tileId(b)
+	end repeat
+	set AppleScript's text item delimiters to ", "
+	set s to ids as text
+	set AppleScript's text item delimiters to ""
+	return s
+end cardIdsText
+
+on waitForICloudGrid(contentGroupIndex, maxTicks)
+	repeat maxTicks times
+		if (count of my hideMyEmailCandidates(contentGroupIndex)) > 0 then return true
+		delay 0.1
+	end repeat
+	return false
+end waitForICloudGrid
+
+-- Returns once the card count has been unchanged for kSettleTicks ticks, or after kMaxTicks ticks.
+on waitForSettledGrid(contentGroupIndex)
+	set lastCount to -1
+	set stable to 0
+	repeat kMaxTicks times
+		set n to count of my hideMyEmailCandidates(contentGroupIndex)
+		if n is lastCount then
+			set stable to stable + 1
+			if stable ≥ kSettleTicks then return
+		else
+			set stable to 0
+			set lastCount to n
+		end if
+		delay 0.1
+	end repeat
+end waitForSettledGrid
+
+-- Sidebar row whose static text carries `paneId` as AXIdentifier (the sidebar ids are pane ids).
+on selectSidebarRow(paneId)
+	try
+		tell application "System Events" to tell application process "System Settings"
+			tell outline 1 of scroll area 1 of group 1 of splitter group 1 of group 1 of window 1
+				repeat with r in rows
+					try
+						if (value of attribute "AXIdentifier" of static text 1 of UI element 1 of r) is paneId then
+							select r
+							return true
+						end if
+					end try
+				end repeat
+			end tell
+		end tell
+	end try
+	return false
+end selectSidebarRow
+
+on windowTitle()
+	try
+		tell application "System Events" to tell application process "System Settings"
+			return (name of window 1) as text
+		end tell
+	end try
+	return "?"
+end windowTitle
+
+-- The Hide My Email sheet has `UI element 1 of scroll area 1` directly under the sheet with two nested groups
+-- (Sequoia and Tahoe). Other iCloud+ sheets nest their scroll area inside a group (Private Relay) and fail this.
+on hideMyEmailSheetOpen()
+	try
+		tell application "System Events" to tell application process "System Settings"
+			return (exists group 1 of group 1 of UI element 1 of scroll area 1 of sheet 1 of window 1)
+		end tell
+	end try
+	return false
+end hideMyEmailSheetOpen
+
+on anySheetOpen()
+	try
+		tell application "System Events" to tell application process "System Settings"
+			return (exists sheet 1 of window 1)
+		end tell
+	end try
+	return false
+end anySheetOpen
+
+-- First non-empty static text of sheet 1 — tells the reader which sheet opened. "" if none.
+-- Called at the process level on purpose (a partial reference inside a `tell <element>` would chain onto it).
+on sheetFirstText()
+	try
+		tell application "System Events" to tell application process "System Settings"
+			return my firstTextIn(sheet 1 of window 1)
+		end tell
+	end try
+	return ""
+end sheetFirstText
+
+on firstTextIn(axContainer)
+	try
+		with timeout of 5 seconds
+			tell application "System Events"
+				repeat with el in (entire contents of axContainer)
+					try
+						if (role of el) is "AXStaticText" then
+							set v to value of el
+							if v is not missing value and (v as text) is not "" then return v as text
+						end if
+					end try
+				end repeat
+			end tell
+		end timeout
+	end try
+	return ""
+end firstTextIn
+
+-- Escape closes every iCloud+ sheet. True once no sheet is open.
+on dismissSheet()
+	tell application "System Settings" to activate
+	tell application "System Events" to key code 53
+	repeat 30 times
+		if not my anySheetOpen() then return true
+		delay 0.1
+	end repeat
+	return false
+end dismissSheet
+
+-- `click` works on Sequoia; Tahoe tiles ignore it and need AXPress (PR #6).
+on pressTile(b, useAXPress)
+	tell application "System Events"
+		if useAXPress then
+			perform action "AXPress" of b
+		else
+			click b
+		end if
+	end tell
+end pressTile
+
+-- END SHARED NAVIGATION
 
 on run argv
 	if (count of argv) ≥ 1 and (item 1 of argv) is "--selftest" then return my runSelfTest()
@@ -76,6 +363,14 @@ on runSelfTest()
 	my writeReport({"line one", "line two"}, tmp)
 	my check(results, "writeReport writes UTF-8 lines", (read (POSIX file tmp) as «class utf8») is "line one" & linefeed & "line two")
 	do shell script "rm -f " & quoted form of tmp
+
+	my check(results, "contentGroupIndexFor(15) is 2", my contentGroupIndexFor(15) is 2)
+	my check(results, "contentGroupIndexFor(26) is 3", my contentGroupIndexFor(26) is 3)
+	my check(results, "kHideMyEmailTileIds has the German id with U+2011", ("six-pack-card-E" & (character id 8209) & "Mail-Adresse verbergen") is in kHideMyEmailTileIds)
+	set navLog to {}
+	my navNote("x")
+	my check(results, "navLogText joins navLog", my navLogText() is "x")
+	set navLog to {}
 
 	set fails to 0
 	repeat with ln in results
@@ -178,102 +473,33 @@ on writeReport(textLines, outPath)
 end writeReport
 
 ----------------------------------------------------------------------
--- GUI: NAVIGATION (full mode only) — mirrors hide-my-mail.applescript up to the sheet, creates nothing.
+-- GUI: NAVIGATION (full mode only) — same shared steps as hide-my-mail.applescript up to the open sheet;
+-- creates nothing. Every step lands in the report, including which card was pressed and which sheet opened.
 ----------------------------------------------------------------------
 
 on openHideMyEmail()
 	set major to (do shell script "sw_vers -productVersion | cut -d. -f1") as integer
-	if major ≥ 26 then
-		set paneId to "com.apple.systempreferences.AppleIDSettings:icloud"
-	else
-		set paneId to "com.apple.systempreferences.AppleIDSettings*AppleIDSettings"
-	end if
+	set contentGroupIndex to my contentGroupIndexFor(major)
 	set end of report to "--- navigation (full mode) ---"
+	set navLog to {}
 
 	my quitSystemSettings()
 	tell application "System Settings"
 		activate
 		delay 0.5
-		try
-			reveal pane id paneId
-			set end of report to "reveal pane " & paneId & ": ok"
-		on error e
-			set end of report to "reveal pane " & paneId & ": FAILED (" & e & ")"
-		end try
 	end tell
-	tell application "System Events" to tell application process "System Settings"
-		repeat with i from 1 to kMaxTicks
-			if (exists window 1) then exit repeat
-			if i is kMaxTicks then error "System Settings window did not appear"
-			delay 0.1
-		end repeat
-	end tell
+	try
+		my openICloudPane(contentGroupIndex)
+		my pressHideMyEmailTile(contentGroupIndex, major ≥ 26)
+	on error e
+		my navNote("ERROR: " & e)
+	end try
 	delay 1
 
-	tell application "System Events" to tell application process "System Settings"
-		if major < 26 then
-			-- Sequoia: click the iCloud section first.
-			try
-				tell group 3 of scroll area 1 of group 1 of group 2 of splitter group 1 of group 1 of window 1
-					repeat with i from 1 to kMaxTicks
-						if (exists UI element 1) then exit repeat
-						if i is kMaxTicks then error "grid UI element 1 never appeared"
-						delay 0.1
-					end repeat
-					click UI element 1
-				end tell
-				set end of report to "iCloud section click (Sequoia grid UI element 1): ok"
-			on error e
-				set end of report to "iCloud section click: FAILED (" & e & ")"
-			end try
-			delay 1
-			try
-				tell group 3 of scroll area 1 of group 1 of group 2 of splitter group 1 of group 1 of window 1
-					repeat with i from 1 to kMaxTicks
-						if (exists UI element 5) then exit repeat
-						if i is kMaxTicks then error "grid UI element 5 never appeared"
-						delay 0.1
-					end repeat
-					click UI element 5
-				end tell
-				set end of report to "Hide My Email tile click (Sequoia grid UI element 5): ok"
-			on error e
-				set end of report to "Hide My Email tile click: FAILED (" & e & ")"
-			end try
-		else
-			-- Tahoe: press the tile by identifier.
-			set hideTile to missing value
-			try
-				repeat with i from 1 to kMaxTicks
-					try
-						tell group 3 of scroll area 1 of group 1 of group 3 of splitter group 1 of group 1 of window 1
-							repeat with b in buttons
-								try
-									if (value of attribute "AXIdentifier" of b) is "six-pack-card-Hide My Email" then
-										set hideTile to contents of b
-										exit repeat
-									end if
-								end try
-							end repeat
-						end tell
-					end try
-					if hideTile is not missing value then exit repeat
-					if i is kMaxTicks then error "tile six-pack-card-Hide My Email not found in Tahoe grid"
-					delay 0.1
-				end repeat
-				perform action "AXPress" of hideTile
-				set end of report to "Hide My Email tile AXPress (six-pack-card-Hide My Email): ok"
-			on error e
-				set end of report to "Hide My Email tile: FAILED (" & e & ")"
-			end try
-		end if
-		repeat with i from 1 to kMaxTicks
-			if (exists sheet 1 of window 1) then exit repeat
-			delay 0.1
-		end repeat
-		set end of report to "sheets open: " & (count of sheets of window 1)
-	end tell
-	delay 1
+	repeat with ln in navLog
+		set end of report to (ln as text)
+	end repeat
+	set end of report to "sheet open: " & (my anySheetOpen() as text) & "; looks like Hide My Email sheet: " & (my hideMyEmailSheetOpen() as text) & "; sheet text: " & my sheetFirstText()
 	set end of report to ""
 end openHideMyEmail
 
