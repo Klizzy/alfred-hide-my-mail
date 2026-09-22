@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  headless:
+    name: Headless checks (macOS)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint, compile, self-tests, structure, bundle
+        run: bash tests/headless.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HideMyMail.alfredworkflow
+          path: HideMyMail.alfredworkflow
+          if-no-files-found: error
+
+  release:
+    name: GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: headless
+    runs-on: macos-15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./package.sh
+      - name: Release notes = top CHANGELOG entry
+        run: awk '/^## /{n++} n==1' CHANGELOG.md > release-notes.md
+      - name: Create release with the bundle attached
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" HideMyMail.alfredworkflow --title "$GITHUB_REF_NAME" --notes-file release-notes.md
