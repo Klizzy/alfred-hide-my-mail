@@ -13,7 +13,7 @@
 - **Robustness:** clean restart of System Settings, 10 s timeout on every step, cleanup on every exit path, no stale window references.
 - **Project:** scripts live in `src/` as executable `.applescript` files run by Alfred's External Script mode, `package.sh` builds the bundle, `tests/headless.sh` runs in GitHub Actions, `tests/live.sh` for manual smoke tests.
 
-**Removed:** the embedded script copy in `info.plist`; Sonoma 14 support (use v1.0/v1.2).
+**Removed:** the embedded script copy in `info.plist`; Sonoma 14 support (use v.1.1 or v.1.0 — v.1.2 already switched the element indices to Sequoia).
 
 ## v1.2
 

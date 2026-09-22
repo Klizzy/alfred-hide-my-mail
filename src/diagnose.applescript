@@ -319,7 +319,6 @@ on dumpTree(el, depth, label)
 		end try
 		set end of kidRoles to r
 	end repeat
-	set seen to {}
 	repeat with idx from 1 to (count of kids)
 		set cls to my roleToClass(item idx of kidRoles)
 		set nth to 0

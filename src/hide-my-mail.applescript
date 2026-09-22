@@ -35,7 +35,7 @@ on createAddress(labelText)
 	set major to my majorVersion()
 	set branchName to my branchForMajor(major)
 	if branchName is "unsupported" then
-		return "Failed: macOS " & major & " is not supported by v" & kVersion & ". Use release v1.2 (Sequoia) or v1.0 (Sonoma)."
+		return "Failed: macOS " & major & " is not supported by v" & kVersion & ". Use release v.1.2 (Sequoia 15) or v.1.1 / v.1.0 (Sonoma 14)."
 	end if
 
 	set clipBefore to my clipboardText()
@@ -49,9 +49,10 @@ on createAddress(labelText)
 		end if
 		delay 0.5
 		set clipAfter to my clipboardText()
-		my quitSystemSettings()
 
+		-- Quit only on the success path: the error path needs System Settings alive for captureDiagnosis().
 		if my looksLikeAddress(clipAfter) and clipAfter is not clipBefore then
+			my quitSystemSettings()
 			return "Created " & clipAfter & " — copied to your clipboard"
 		end if
 		if shownAddress is not "" then
@@ -61,6 +62,9 @@ on createAddress(labelText)
 	on error errMsg
 		set diagNote to my captureDiagnosis("Failed: " & errMsg)
 		my quitSystemSettings()
+		if diagNote starts with "Diagnosis saved" then
+			return "Failed: " & errMsg & ". " & diagNote & " Attach it to an issue at " & kIssuesUrl
+		end if
 		return "Failed: " & errMsg & ". " & diagNote & " Please attach " & kDiagnosisFile & " to an issue at " & kIssuesUrl
 	end try
 end createAddress
@@ -117,15 +121,21 @@ on runSequoia(labelText)
 					click text field 1 of group 4
 					set value of text field 1 of group 4 to labelText
 				end tell
+			end tell
 
-				-- The generated address is usually visible on this screen; grab it for the notification (best effort).
+			-- The generated address is usually visible on this screen; grab it for the notification (best effort).
+			-- Called at the process level on purpose: passed from inside a `tell <element>` block this partial
+			-- reference would chain onto that element and System Events would throw -1728 at the call site.
+			try
 				set shownAddress to my addressShownIn(sheet 1 of window 1)
+			end try
 
-				-- 5. v1.2's four confirmation clicks, alternating group 2 / group 1. Stops early if the sheet closes.
+			-- 5. v1.2's four confirmation clicks, alternating group 2 / group 1. Stops early if the sheet closes.
+			tell UI element 1 of scroll area 1 of sheet 1 of window 1
 				tell group 1 of group 2 of group 1
 					repeat with stepNo from 1 to 4
 						repeat with i from 1 to kMaxTicks
-							if not (my sheetOpen()) then exit repeat
+							if not (my sheetOpen(1)) then exit repeat
 							if stepNo mod 2 is 1 then
 								if (exists UI element 1 of group 2) then exit repeat
 							else
@@ -133,7 +143,7 @@ on runSequoia(labelText)
 							end if
 							my waitTick(i, "confirmation step " & stepNo)
 						end repeat
-						if not (my sheetOpen()) then exit repeat
+						if not (my sheetOpen(1)) then exit repeat
 						if stepNo mod 2 is 1 then
 							click UI element 1 of group 2
 						else
@@ -211,9 +221,17 @@ on runTahoe(labelText)
 					set focused to true
 					set value to labelText
 				end tell
-				set shownAddress to my addressShownIn(sheet createSheet of window 1)
-				delay 0.3
+			end tell
 
+			-- The generated address is usually visible on this screen; grab it for the notification (best effort).
+			-- Called at the process level on purpose: passed from inside a `tell <element>` block this partial
+			-- reference would chain onto that element and System Events would throw -1728 at the call site.
+			try
+				set shownAddress to my addressShownIn(sheet createSheet of window 1)
+			end try
+			delay 0.3
+
+			tell UI element 1 of scroll area 1 of sheet createSheet of window 1
 				tell group 1 of group 2 of group 1
 					-- 5. Continue (group 2).
 					set btn to my pickNamed(buttons of group 2, kContinueNames)
@@ -233,12 +251,15 @@ on runTahoe(labelText)
 					perform action "AXPress" of btn
 					delay 0.3
 
-					-- 7. Done (group 2). Skip silently if the sheet already closed.
-					if my sheetOpen() then
-						set btn to my pickNamed(buttons of group 2, kDoneNames)
-						if btn is missing value and (exists UI element 1 of group 2) then set btn to UI element 1 of group 2
-						if btn is not missing value then perform action "AXPress" of btn
-					end if
+					-- 7. Done (group 2). Best effort: the sheet may already have closed after Copy,
+					-- and on 26.6.x closing it can make `buttons of group 2` error. Copy already succeeded.
+					try
+						if my sheetOpen(createSheet) then
+							set btn to my pickNamed(buttons of group 2, kDoneNames)
+							if btn is missing value and (exists UI element 1 of group 2) then set btn to UI element 1 of group 2
+							if btn is not missing value then perform action "AXPress" of btn
+						end if
+					end try
 				end tell
 			end tell
 		end tell
@@ -264,6 +285,8 @@ on runSelfTest()
 	my check(report, "looksLikeAddress rejects plain text", not my looksLikeAddress("hello world"))
 	my check(report, "looksLikeAddress rejects text with spaces", not my looksLikeAddress("a b@icloud.com"))
 	my check(report, "looksLikeAddress rejects empty", not my looksLikeAddress(""))
+	my check(report, "looksLikeAddress rejects text with a linefeed", not my looksLikeAddress("a@b.c" & linefeed & "d@e.f"))
+	my check(report, "addressShownIn is best effort: returns \"\" instead of throwing on a non-element", my addressShownIn(missing value) is "")
 	my check(report, "name tables are non-empty", ((count of kCreateNames) > 0 and (count of kContinueNames) > 0 and (count of kCopyNames) > 0 and (count of kDoneNames) > 0))
 	my check(report, "scriptDir() is a directory", my fileExists(my scriptDir(), "-d"))
 	my check(report, "diagnose.applescript sits next to this script", my fileExists(my scriptDir() & "/diagnose.applescript", "-f"))
@@ -368,12 +391,14 @@ on pickNamed(candidates, nameList)
 	return missing value
 end pickNamed
 
--- Best effort: first static text under `container` whose value looks like an address. "" if none.
-on addressShownIn(container)
+-- Best effort: first static text under `axContainer` whose value looks like an address. "" if none.
+-- The parameter must NOT be named `container`: that is System Events terminology and would shadow the
+-- parameter inside the tell block below, making this handler always return "".
+on addressShownIn(axContainer)
 	try
 		with timeout of 5 seconds
 			tell application "System Events"
-				repeat with el in (entire contents of container)
+				repeat with el in (entire contents of axContainer)
 					try
 						if (role of el) is "AXStaticText" then
 							set v to value of el
@@ -387,9 +412,10 @@ on addressShownIn(container)
 	return ""
 end addressShownIn
 
-on sheetOpen()
+-- Index-aware: on Tahoe 26.6.x the create dialog can be sheet 2, so callers pass the sheet they work on.
+on sheetOpen(sheetIndex)
 	tell application "System Events" to tell application process "System Settings"
-		return (exists sheet 1 of window 1)
+		return (exists sheet sheetIndex of window 1)
 	end tell
 end sheetOpen
 
@@ -425,7 +451,8 @@ on restartSystemSettings(paneId)
 			reveal pane id paneId
 		on error
 			-- Fallback URL scheme lands on the Apple Account pane on both versions.
-			open location "x-apple.systempreferences:com.apple.systempreferences.AppleIDSettings"
+			-- `tell me to …`: `open location` is StandardAdditions, not System Settings terminology.
+			tell me to open location "x-apple.systempreferences:com.apple.systempreferences.AppleIDSettings"
 		end try
 	end tell
 	repeat with i from 1 to kMaxTicks

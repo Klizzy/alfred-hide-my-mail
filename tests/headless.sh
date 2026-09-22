@@ -17,6 +17,22 @@ for f in src/hide-my-mail.applescript src/diagnose.applescript; do
   ok "$f: shebang, executable, compiles"
 done
 
+# Terminology guard: an identifier that collides with System Events terminology (e.g. a parameter named
+# `container`) compiles fine but resolves to the application's term at runtime. osacompile→osadecompile
+# round-trips the source through the compiler's terminology, so a collision shows up as the raw term.
+tmpdir=$(mktemp -d)
+trap 'rm -rf "$tmpdir"' EXIT
+for f in src/hide-my-mail.applescript src/diagnose.applescript; do
+  scpt="$tmpdir/$(basename "$f" .applescript).scpt"
+  osacompile -o "$scpt" "$f" || fail "$f does not compile to $scpt"
+  if osadecompile "$scpt" | grep -qE ' of container|container of '; then
+    fail "$f: identifier resolves to System Events' 'container' terminology — rename it (e.g. axContainer)"
+  fi
+  ok "$f: no System Events terminology collision after compile/decompile round-trip"
+done
+rm -rf "$tmpdir"
+trap - EXIT
+
 out=$(osascript src/hide-my-mail.applescript --selftest)
 echo "$out" | sed 's/^/     /'
 echo "$out" | tail -1 | grep -q '^SELFTEST PASS' || fail "hide-my-mail self-test"

@@ -39,7 +39,7 @@ The workflow will open the MacOS System Settings, navigate to the appropriate se
 |-------|--------|
 | Sequoia 15.x | ✅ Tested by the maintainer |
 | Tahoe 26.x | ✅ Based on community-verified fixes — please report issues with `hide-diagnose` |
-| Sonoma 14.x | ❌ Not supported by v2.0 — use [release v.1.2](https://github.com/Klizzy/alfred-hide-my-mail/releases/tag/v.1.2) or [release v.1.0](https://github.com/Klizzy/alfred-hide-my-mail/releases/tag/v.1.0) |
+| Sonoma 14.x | ❌ Not supported by v2.0 — use [release v.1.1](https://github.com/Klizzy/alfred-hide-my-mail/releases/tag/v.1.1) or [release v.1.0](https://github.com/Klizzy/alfred-hide-my-mail/releases/tag/v.1.0) (v.1.2 switched the element indices to Sequoia) |
 
 The workflow detects your macOS version and uses the matching navigation path. Button labels are recognised in English, German, French and Spanish.
 
