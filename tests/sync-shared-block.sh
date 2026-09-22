@@ -9,8 +9,8 @@ dst=src/diagnose.applescript
 begin='-- BEGIN SHARED NAVIGATION'
 end='-- END SHARED NAVIGATION'
 
-grep -qF "$begin" "$src" && grep -qF "$end" "$src" || { echo "FAIL: $src has no shared block markers" >&2; exit 1; }
-grep -qF "$begin" "$dst" && grep -qF "$end" "$dst" || { echo "FAIL: $dst has no shared block markers — add both marker lines where the block should live" >&2; exit 1; }
+grep -qxF -- "$begin" "$src" && grep -qxF -- "$end" "$src" || { echo "FAIL: $src has no shared block markers" >&2; exit 1; }
+grep -qxF -- "$begin" "$dst" && grep -qxF -- "$end" "$dst" || { echo "FAIL: $dst has no shared block markers — add both marker lines where the block should live" >&2; exit 1; }
 
 block=$(mktemp); out=$(mktemp)
 trap 'rm -f "$block" "$out"' EXIT
