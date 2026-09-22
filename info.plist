@@ -104,9 +104,9 @@
 				<key>scriptargtype</key>
 				<integer>1</integer>
 				<key>scriptfile</key>
-				<string>HideMyMail.scpt</string>
+				<string>src/hide-my-mail.applescript</string>
 				<key>type</key>
-				<integer>6</integer>
+				<integer>8</integer>
 			</dict>
 			<key>type</key>
 			<string>alfred.workflow.action.script</string>
@@ -169,9 +169,9 @@
 				<key>scriptargtype</key>
 				<integer>1</integer>
 				<key>scriptfile</key>
-				<string>diagnose.scpt</string>
+				<string>src/diagnose.applescript</string>
 				<key>type</key>
-				<integer>6</integer>
+				<integer>8</integer>
 			</dict>
 			<key>type</key>
 			<string>alfred.workflow.action.script</string>
@@ -284,7 +284,7 @@ The main script is heavily inspired by a created Shortcut from [this reddit thre
 		<key>AC04F4E8-31B4-482D-A1BA-FADCC7CCDC77</key>
 		<dict>
 			<key>note</key>
-			<string>AppleScript - Config-driven GUI Scripting (v2.0)</string>
+			<string>External Script — src/hide-my-mail.applescript (v2.0)</string>
 			<key>xpos</key>
 			<real>695</real>
 			<key>ypos</key>
@@ -300,7 +300,7 @@ The main script is heavily inspired by a created Shortcut from [this reddit thre
 		<key>F2A3B4C5-D6E7-F8A9-B0C1-D2E3F4A5B6C7</key>
 		<dict>
 			<key>note</key>
-			<string>AppleScript - UI Hierarchy Dump</string>
+			<string>External Script — src/diagnose.applescript</string>
 			<key>xpos</key>
 			<real>695</real>
 			<key>ypos</key>
