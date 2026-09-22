@@ -38,3 +38,6 @@ CLAUDE.md
 # Local planning / SDD state — never published
 docs/
 .superpowers/
+
+# Diagnosis dumps copied into the repo root for analysis (auto-written to ~/Desktop by the workflow)
+hide-my-mail-diagnosis*.txt

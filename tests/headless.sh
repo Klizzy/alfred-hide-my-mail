@@ -82,4 +82,7 @@ done
 [ "$(zipinfo HideMyMail.alfredworkflow | grep -cE '^-rwx.*src/.*\.applescript$')" = "2" ] || fail "bundled scripts lost their executable bit"
 ok "bundle: exactly the 5 expected files, scripts executable"
 
+git check-ignore -q hide-my-mail-diagnosis.txt || fail "hide-my-mail-diagnosis*.txt must be gitignored (maintainer copies dumps into the repo root)"
+ok "diagnosis dumps are gitignored"
+
 echo "ALL HEADLESS CHECKS PASSED"

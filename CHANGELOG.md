@@ -6,14 +6,14 @@
 
 **Changes:**
 - **macOS Tahoe 26.x support.** Navigation based on [#6](https://github.com/Klizzy/alfred-hide-my-mail/pull/6) by [@coryfklein](https://github.com/coryfklein) (iCloud pane id, `six-pack-card-Hide My Email` tile, `AXPress`, Continue → Copy Address → Done), confirmed by [@kboyington](https://github.com/kboyington) and [@DrBones](https://github.com/DrBones). Sheet-index detection and reading the generated address from the sheet based on [#7](https://github.com/Klizzy/alfred-hide-my-mail/pull/7) by [@JosefGvirt](https://github.com/JosefGvirt) (verified on 26.6.2).
-- **Sequoia 15.x keeps working** with its own proven navigation path (v1.2's).
+- **Sequoia 15.x fixed.** Since macOS 15.3 the iCloud+ Features grid has an extra *Apple Invites* card, so v1.2's positional click (`UI element 5`) opened *Private Relay* instead of Hide My Email (the 15.7 report in [#4](https://github.com/Klizzy/alfred-hide-my-mail/issues/4)). The card is now found by its `six-pack-card-…` accessibility identifier, the opened sheet is verified before anything is typed, and System Settings is opened directly on the iCloud pane instead of clicking through Apple Account.
 - **The notification tells the truth.** Success is only reported when a new address really landed on the clipboard; the notification shows the address. Failures name the step.
 - **Automatic diagnosis on failure.** `~/Desktop/hide-my-mail-diagnosis.txt` is written with the System Settings layout at the moment of failure. `hide-diagnose` produces it on demand.
-- **Localised button names** (English, German, French, Spanish) with positional fallbacks.
-- **Robustness:** clean restart of System Settings, 10 s timeout on every step, cleanup on every exit path, no stale window references.
+- **Localised button names and card identifiers** (English, German, French, Spanish) with positional fallbacks for buttons; for an unknown language the card is found by the shape of the sheet it opens, and a failure lists the card identifiers seen so they can be added.
+- **Robustness:** clean restart of System Settings, waits for the iCloud pane to really be on screen before clicking, 10 s timeout on every step, cleanup on every exit path, no stale window references.
 - **Project:** scripts live in `src/` as executable `.applescript` files run by Alfred's External Script mode, `package.sh` builds the bundle, `tests/headless.sh` runs in GitHub Actions, `tests/live.sh` for manual smoke tests.
 
-**Removed:** the embedded script copy in `info.plist`; Sonoma 14 support (use v.1.1 or v.1.0 — v.1.2 already switched the element indices to Sequoia).
+**Removed:** the embedded script copy in `info.plist`; Sonoma 14 support (use v.1.1 or v.1.0). v.1.2 is broken on macOS 15.3 and later for the reason above — upgrade.
 
 ## v1.2
 
