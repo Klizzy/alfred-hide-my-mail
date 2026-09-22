@@ -1,7 +1,8 @@
 #!/usr/bin/osascript
 -- Hide My Mail for Alfred — v2.0
 -- Creates an iCloud "Hide My Email" address with the given label and copies it to the clipboard.
--- macOS Sequoia (15.x) and Tahoe (26.x) each have their own proven navigation branch.
+-- Both macOS Sequoia (15.x) and Tahoe (26.x) open the iCloud pane directly and find the Hide My Email card by its
+-- accessibility identifier (shared block below); the sheet steps are each version's proven sequence.
 --
 -- Usage:  osascript src/hide-my-mail.applescript "My Label"
 --         osascript src/hide-my-mail.applescript --selftest | --version
@@ -322,13 +323,15 @@ on createAddress(labelText)
 	set major to my majorVersion()
 	set branchName to my branchForMajor(major)
 	if branchName is "unsupported" then
-		return "Failed: macOS " & major & " is not supported by v" & kVersion & ". Use release v.1.2 (Sequoia 15) or v.1.1 / v.1.0 (Sonoma 14)."
+		return "Failed: macOS " & major & " is not supported by v" & kVersion & ". Use release v.1.1 / v.1.0 (Sonoma 14)."
 	end if
 
 	set clipBefore to my clipboardText()
 	set shownAddress to ""
+	set navLog to {}
 	try
-		my restartSystemSettings(my paneIdForBranch(branchName))
+		my launchSystemSettings()
+		my openICloudPane(my contentGroupIndexFor(major))
 		if branchName is "tahoe" then
 			set shownAddress to my runTahoe(labelText)
 		else
@@ -347,7 +350,7 @@ on createAddress(labelText)
 		end if
 		error "the flow finished but the clipboard did not change"
 	on error errMsg
-		set diagNote to my captureDiagnosis("Failed: " & errMsg)
+		set diagNote to my captureDiagnosis("Failed: " & errMsg & linefeed & "Navigation log:" & linefeed & my navLogText())
 		my quitSystemSettings()
 		if diagNote starts with "Diagnosis saved" then
 			return "Failed: " & errMsg & ". " & diagNote & " Attach it to an issue at " & kIssuesUrl
@@ -357,43 +360,23 @@ on createAddress(labelText)
 end createAddress
 
 ----------------------------------------------------------------------
--- SEQUOIA 15.x — v1.2's proven sequence (click + positional), plus timeouts and name-first Create.
+-- SEQUOIA 15.x — card by identifier (shared), then v1.2's proven sheet sequence (click + positional) with timeouts.
 ----------------------------------------------------------------------
 
 on runSequoia(labelText)
 	set shownAddress to ""
+	-- 1+2. Hide My Email card by AXIdentifier; the sheet is open and verified when this returns.
+	my pressHideMyEmailTile(2, false)
 	tell application "System Events"
 		tell application process "System Settings"
-			-- 1. iCloud section (UI element 1 of the grid).
-			tell group 3 of scroll area 1 of group 1 of group 2 of splitter group 1 of group 1 of window 1
-				repeat with i from 1 to kMaxTicks
-					if (exists UI element 1) then exit repeat
-					my waitTick(i, "iCloud section")
-				end repeat
-				click UI element 1
-			end tell
-
-			-- 2. Hide My Email tile (UI element 5). Re-addressed from window 1: the window title changed after step 1.
-			tell group 3 of scroll area 1 of group 1 of group 2 of splitter group 1 of group 1 of window 1
-				repeat with i from 1 to kMaxTicks
-					if (exists UI element 5) then exit repeat
-					my waitTick(i, "Hide My Email tile")
-				end repeat
-				click UI element 5
-			end tell
-
-			-- 3. Sheet: Create New Address (by name in any language, else v1.2's UI element 5).
-			repeat with i from 1 to kMaxTicks
-				if (exists group 1 of group 1 of UI element 1 of scroll area 1 of sheet 1 of window 1) then exit repeat
-				my waitTick(i, "Hide My Email sheet")
-			end repeat
+			-- 3. Sheet: Create New Address (by name in any language; v1.2's UI element 5 only after 3 s).
 			tell UI element 1 of scroll area 1 of sheet 1 of window 1
 				tell group 1 of group 1
 					set createBtn to missing value
 					repeat with i from 1 to kMaxTicks
 						try
 							set createBtn to my pickNamed(buttons of group 1, kCreateNames)
-							if createBtn is missing value and (exists UI element 5 of group 1) then set createBtn to UI element 5 of group 1
+							if createBtn is missing value and i ≥ 30 and (exists UI element 5 of group 1) then set createBtn to UI element 5 of group 1
 						end try
 						if createBtn is not missing value then exit repeat
 						my waitTick(i, "Create New Address button")
@@ -446,34 +429,16 @@ on runSequoia(labelText)
 end runSequoia
 
 ----------------------------------------------------------------------
--- TAHOE 26.x — PR #6's proven sequence (AXPress, identifier, named buttons),
--- plus PR #7's sheet-index detection and address scrape. Positional fallbacks are v1.2's indices
--- (the sheet containers are identical on both versions).
+-- TAHOE 26.x — card by identifier (shared), then PR #6's sequence (AXPress, named buttons) plus PR #7's
+-- sheet-index detection and address scrape. Positional fallbacks are v1.2's indices.
 ----------------------------------------------------------------------
 
 on runTahoe(labelText)
 	set shownAddress to ""
 	tell application "System Events"
 		tell application process "System Settings"
-			-- 1. The pane opens on iCloud already. Find the Hide My Email tile by AXIdentifier in the iCloud+ Features grid.
-			set hideTile to missing value
-			repeat with i from 1 to kMaxTicks
-				try
-					tell group 3 of scroll area 1 of group 1 of group 3 of splitter group 1 of group 1 of window 1
-						repeat with b in buttons
-							try
-								if (value of attribute "AXIdentifier" of b) is "six-pack-card-Hide My Email" then
-									set hideTile to contents of b
-									exit repeat
-								end if
-							end try
-						end repeat
-					end tell
-				end try
-				if hideTile is not missing value then exit repeat
-				my waitTick(i, "Hide My Email tile (six-pack-card-Hide My Email)")
-			end repeat
-			perform action "AXPress" of hideTile -- Tahoe tiles ignore `click` (PR #6)
+			-- 1. Hide My Email card by AXIdentifier (shared; AXPress because Tahoe tiles ignore `click`, PR #6).
+			my pressHideMyEmailTile(3, true)
 
 			-- 2. Create New Address (named; fallback UI element 5).
 			set createBtn to missing value
@@ -636,11 +601,6 @@ on branchForMajor(major)
 	return "unsupported"
 end branchForMajor
 
-on paneIdForBranch(branchName)
-	if branchName is "tahoe" then return "com.apple.systempreferences.AppleIDSettings:icloud"
-	return "com.apple.systempreferences.AppleIDSettings*AppleIDSettings"
-end paneIdForBranch
-
 -- Directory this script lives in (works from Alfred External Script and from `osascript path`).
 on scriptDir()
 	try
@@ -741,28 +701,15 @@ on quitSystemSettings()
 	end repeat
 end quitSystemSettings
 
--- Clean start: quit, relaunch, reveal the pane, wait for the window. Never keeps a window reference.
-on restartSystemSettings(paneId)
+-- Clean start: quit, relaunch, front. The pane is opened by openICloudPane (shared block), which also waits
+-- for the iCloud+ grid instead of trusting `exists window 1`.
+on launchSystemSettings()
 	my quitSystemSettings()
 	tell application "System Settings"
 		activate
 		delay 0.5
-		try
-			reveal pane id paneId
-		on error
-			-- Fallback URL scheme lands on the Apple Account pane on both versions.
-			-- `tell me to …`: `open location` is StandardAdditions, not System Settings terminology.
-			tell me to open location "x-apple.systempreferences:com.apple.systempreferences.AppleIDSettings"
-		end try
 	end tell
-	repeat with i from 1 to kMaxTicks
-		tell application "System Events" to tell application process "System Settings"
-			if (exists window 1) then exit repeat
-		end tell
-		my waitTick(i, "System Settings window")
-	end repeat
-	delay 0.5
-end restartSystemSettings
+end launchSystemSettings
 
 ----------------------------------------------------------------------
 -- FAILURE DIAGNOSIS
