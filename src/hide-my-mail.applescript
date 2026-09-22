@@ -266,6 +266,7 @@ on runSelfTest()
 	my check(report, "looksLikeAddress rejects empty", not my looksLikeAddress(""))
 	my check(report, "name tables are non-empty", ((count of kCreateNames) > 0 and (count of kContinueNames) > 0 and (count of kCopyNames) > 0 and (count of kDoneNames) > 0))
 	my check(report, "scriptDir() is a directory", my fileExists(my scriptDir(), "-d"))
+	my check(report, "diagnose.applescript sits next to this script", my fileExists(my scriptDir() & "/diagnose.applescript", "-f"))
 	my check(report, "clipboardText() returns text", class of (my clipboardText()) is text)
 
 	set fails to 0
