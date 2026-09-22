@@ -32,15 +32,16 @@ The workflow will open the MacOS System Settings, navigate to the appropriate se
 
 1. Alfred 5.1 or later
 2. Active [iCloud+](https://support.apple.com/guide/icloud/mm9d9012c9e8/icloud) subscription
-3. macOS:
+3. **Accessibility permission for Alfred**: System Settings → Privacy & Security → Accessibility → enable Alfred. macOS does not always prompt for this.
+4. macOS:
 
 | macOS | Status |
 |-------|--------|
-| Sequoia 15.x | ✅ Tested |
-| Tahoe 26.x | 🧪 Community-reported working (please report issues with `hide-diagnose`) |
-| Other versions | ⚠️ Untested — run `hide-diagnose` and open an issue to add support |
+| Sequoia 15.x | ✅ Tested by the maintainer |
+| Tahoe 26.x | ✅ Based on community-verified fixes — please report issues with `hide-diagnose` |
+| Sonoma 14.x | ❌ Not supported by v2.0 — use [release v.1.2](https://github.com/Klizzy/alfred-hide-my-mail/releases/tag/v.1.2) or [release v.1.0](https://github.com/Klizzy/alfred-hide-my-mail/releases/tag/v.1.0) |
 
-The workflow auto-detects your macOS version and loads the matching UI map from `ui-maps/`. If your version isn't mapped yet, it falls back to the newest map and warns you.
+The workflow detects your macOS version and uses the matching navigation path. Button labels are recognised in English, German, French and Spanish.
 
 ## Configuration
 
@@ -49,13 +50,11 @@ You can change the keyword to trigger the workflow by opening the Alfred Prefere
 
 ## Diagnostics
 
-If the workflow stops working after a macOS update, help get it fixed:
+The notification always tells you what really happened: `Created <address> — copied to your clipboard`, or `Failed: <step> …`.
 
-1. Open Alfred and run `hide-diagnose` (no argument).
-2. It writes `~/Desktop/hide-my-mail-diagnosis.txt` with the current System Settings UI layout.
-3. Open a [GitHub issue](https://github.com/Klizzy/alfred-hide-my-mail/issues) and attach that file.
+**When it fails, a diagnosis file is written automatically** to `~/Desktop/hide-my-mail-diagnosis.txt` with the System Settings layout at the moment of failure. Attach it to a [GitHub issue](https://github.com/Klizzy/alfred-hide-my-mail/issues). It contains UI structure and your macOS/locale/Alfred versions, no addresses or personal data beyond what is visible in that System Settings pane — check it before posting.
 
-The maintainer can turn that dump into an updated `ui-maps/<name>-<version>.plist` — usually with no script change.
+You can also produce it on demand: run `hide-diagnose` in Alfred (no argument). That opens System Settings, navigates to Hide My Email without creating anything, and writes the same file.
 
 ## Why?
 
@@ -64,23 +63,23 @@ The complete process is automated with this workflow, so you don't have to click
 
 ## Troubleshooting
 
-**Nothing gets copied / System Settings just opens.** Your macOS version likely shifted the UI. Run `hide-diagnose` and open an issue (see Diagnostics).
+**"Failed: Timeout waiting for …" right at the first step / System Settings just opens.** Almost always missing Accessibility permission for Alfred (see Requirements). If Alfred is already listed, remove and re-add it, or run `tccutil reset Accessibility com.runningwithcrayons.Alfred` in Terminal and trigger the workflow again.
 
-**"System Settings got an error" / accessibility permission.** macOS may not prompt for Accessibility permission automatically. Grant it manually: System Settings → Privacy & Security → Accessibility → enable Alfred. If it's already listed but not working, remove and re-add it (or run `tccutil reset Accessibility` in Terminal and re-trigger).
+**Works in Terminal but not from Alfred (or vice versa).** Accessibility permission is per app. Grant it to Alfred *and* to your terminal app if you use both.
 
-**A leftover System Settings sheet from a previous run.** The workflow now quits System Settings before it starts, which clears this automatically.
+**"Failed: … the flow finished but the clipboard did not change".** The clicks went through but nothing was copied — usually a UI layout change in a new macOS release. Attach the diagnosis file to an issue.
 
-**Last step doesn't complete on slower Macs.** Increase the final delay: open Alfred Preferences → Workflows → Hide My Mail → double-click the `Run Script` node and raise the trailing `delay 1` to `delay 2` (or higher).
+**A leftover System Settings window from a previous run.** The workflow closes System Settings before it starts and after it finishes, including on failure.
 
-## Building from source
-
-The workflow bundles `info.plist`, `icon.png`, both scripts, and `ui-maps/`. Rebuild the `.alfredworkflow` after editing:
+## Building and testing from source
 
 ```sh
-./package.sh
+./package.sh          # writes HideMyMail.alfredworkflow (double-click to import into Alfred)
+bash tests/headless.sh   # lint, compile, self-tests, info.plist structure, bundle contents — also runs in CI
+bash tests/live.sh       # maintainer smoke test: creates ONE real address and checks the clipboard
 ```
 
-This writes `HideMyMail.alfredworkflow` in the repo root, which Alfred imports on double-click.
+`tests/headless.sh` needs `python3` (Xcode Command Line Tools). The GUI flow itself cannot run in CI (no iCloud account, no Accessibility), so every release is verified by hand on Sequoia and by testers on Tahoe.
 
 ## Contact & Support
 
@@ -89,4 +88,6 @@ This writes `HideMyMail.alfredworkflow` in the repo root, which Alfred imports o
 
 ## Credits
 
-The main script is heavily inspired by a created Shortcut from [this reddit thread](https://www.reddit.com/r/shortcuts/comments/yp5817/comment/je8o0or/)
+The main script is heavily inspired by a created Shortcut from [this reddit thread](https://www.reddit.com/r/shortcuts/comments/yp5817/comment/je8o0or/).
+
+Thanks to [@coryfklein](https://github.com/coryfklein) and [@JosefGvirt](https://github.com/JosefGvirt) for the macOS Tahoe pull requests with working examples — they made Tahoe support possible while I could not yet upgrade and test it myself.

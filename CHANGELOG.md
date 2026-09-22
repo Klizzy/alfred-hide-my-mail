@@ -2,20 +2,18 @@
 
 ## v2.0
 
-### Hardened, config-driven GUI scripting + macOS Tahoe support
-
-Rewrote the automation so it survives macOS UI changes with a config edit instead of a script rewrite.
+### macOS Tahoe support, honest results, built-in diagnostics
 
 **Changes:**
-- **Four-tier element search** (AXIdentifier → scoped AXRole → positional index → localized-name table) replaces hardcoded positional indices.
-- **Per-version UI maps** in `ui-maps/` (`sequoia-15.plist`, `tahoe-26.plist`), auto-selected via `sw_vers`.
-- **macOS Tahoe 26.x support**, based on the fix in [#6](https://github.com/Klizzy/alfred-hide-my-mail/pull/6) (thanks [@coryfklein](https://github.com/coryfklein), confirmed by [@kboyington](https://github.com/kboyington)). Uses the `…AppleIDSettings:icloud` pane, the `six-pack-card-Hide My Email` tile identifier, `AXPress` (Tahoe tiles ignore `click`), and the explicit Continue → Copy Address → Done flow.
-- **`hide-diagnose` command** dumps the UI hierarchy to `~/Desktop/hide-my-mail-diagnosis.txt` so new-version maps are easy to contribute.
-- **Honest notifications** — the success/failure message now reflects the script's actual result instead of always showing "Success!".
-- **Robustness:** quits System Settings first (avoids `REVEAL_PANE_ERR_MODAL`), 10s timeouts on every wait, and a top-level error handler that cleans up.
-- **`package.sh`** builds the `.alfredworkflow` bundle from the command line.
+- **macOS Tahoe 26.x support.** Navigation based on [#6](https://github.com/Klizzy/alfred-hide-my-mail/pull/6) by [@coryfklein](https://github.com/coryfklein) (iCloud pane id, `six-pack-card-Hide My Email` tile, `AXPress`, Continue → Copy Address → Done), confirmed by [@kboyington](https://github.com/kboyington) and [@DrBones](https://github.com/DrBones). Sheet-index detection and reading the generated address from the sheet based on [#7](https://github.com/Klizzy/alfred-hide-my-mail/pull/7) by [@JosefGvirt](https://github.com/JosefGvirt) (verified on 26.6.2).
+- **Sequoia 15.x keeps working** with its own proven navigation path (v1.2's).
+- **The notification tells the truth.** Success is only reported when a new address really landed on the clipboard; the notification shows the address. Failures name the step.
+- **Automatic diagnosis on failure.** `~/Desktop/hide-my-mail-diagnosis.txt` is written with the System Settings layout at the moment of failure. `hide-diagnose` produces it on demand.
+- **Localised button names** (English, German, French, Spanish) with positional fallbacks.
+- **Robustness:** clean restart of System Settings, 10 s timeout on every step, cleanup on every exit path, no stale window references.
+- **Project:** scripts live in `src/` as executable `.applescript` files run by Alfred's External Script mode, `package.sh` builds the bundle, `tests/headless.sh` runs in GitHub Actions, `tests/live.sh` for manual smoke tests.
 
-Localized button names seeded from [#1](https://github.com/Klizzy/alfred-hide-my-mail/pull/1) (English + German).
+**Removed:** the embedded script copy in `info.plist`; Sonoma 14 support (use v1.0/v1.2).
 
 ## v1.2
 
