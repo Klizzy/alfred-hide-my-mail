@@ -16,8 +16,16 @@ property kMaxDepth : 14
 property kMaxElements : 1500
 property kOutputName : "hide-my-mail-diagnosis.txt"
 property kMaxTicks : 50 -- 5 s per wait in full mode
+property kBatchTimeout : 10 -- s for one batched read of a parent's children
+property kReadTimeout : 5 -- s for one single-element read
+property kRetryBudget : 30 -- single-element re-reads allowed per dump (0.3 s each)
+property kElideRoles : {"AXList", "AXOutline", "AXTable"}
+property kElideAbove : 12 -- containers with more children than this are shortened…
+property kElideHead : 6 -- …to their first kElideHead children plus the last one
 
 property elementCount : 0
+property failedReads : 0
+property retriesLeft : 30
 property report : {}
 
 -- BEGIN SHARED NAVIGATION
@@ -382,6 +390,23 @@ on runSelfTest()
 	my navNote("x")
 	my check(results, "navLogText joins navLog", my navLogText() is "x")
 	set navLog to {}
+	my check(results, "errorTag formats number and message", my errorTag(-1719, "Invalid index.") is "? [err -1719: Invalid index.]")
+	my check(results, "errorTag shortens long messages", (length of my errorTag(-1728, my repeatText("x", 200))) < 120)
+	my check(results, "shouldElide: long AXList", my shouldElide("AXList", 217))
+	my check(results, "shouldElide: long AXOutline", my shouldElide("AXOutline", 45))
+	my check(results, "shouldElide: AXList at the threshold is not elided", not my shouldElide("AXList", kElideAbove))
+	my check(results, "shouldElide: empty AXList", not my shouldElide("AXList", 0))
+	my check(results, "shouldElide: AXGroup is never elided (the sheet's main group holds the create button)", not my shouldElide("AXGroup", 24))
+	my check(results, "elisionLine names the range and the class", my elisionLine(7, 216, "static text", 7, 216) is "[UI element 7…216 | static text 7…216]  … 210 more static texts not listed")
+	my check(results, "itemOr returns the item", my itemOr({"a", "b"}, 2, "") is "b")
+	my check(results, "itemOr falls back on missing value list", my itemOr(missing value, 1, "z") is "z")
+	my check(results, "itemOr falls back on missing value item", my itemOr({missing value}, 1, "z") is "z")
+	my check(results, "itemOr falls back on out-of-range index", my itemOr({"a"}, 5, "z") is "z")
+	tell application "System Events" to set fakeProps to {role:"AXButton", subrole:"AXCloseButton", name:"OK", description:"Taste", value:missing value, enabled:false}
+	set fakeDesc to my describeFromProps(fakeProps, "go back")
+	my check(results, "describeFromProps reads the record without Apple Events", (axRole of fakeDesc) is "AXButton" and (descLine of fakeDesc) is "AXButton/AXCloseButton  id=\"go back\"  title=\"OK\"  desc=\"Taste\"  disabled")
+	set fakeDesc to my describeFromProps({}, missing value)
+	my check(results, "describeFromProps on an empty record yields ? with no id", (axRole of fakeDesc) is "?" and (descLine of fakeDesc) is "?")
 
 	set fails to 0
 	repeat with ln in results
@@ -444,6 +469,41 @@ on shorten(t, maxLen)
 	if (length of s) > maxLen then return (text 1 thru maxLen of s) & "…"
 	return s
 end shorten
+
+on repeatText(t, n)
+	set s to ""
+	repeat n times
+		set s to s & t
+	end repeat
+	return s
+end repeatText
+
+-- What the dump prints instead of a bare "?" when System Events cannot read an element.
+on errorTag(errNum, errMsg)
+	return "? [err " & errNum & ": " & (my shorten(errMsg, 80)) & "]"
+end errorTag
+
+-- Lists/outlines/tables longer than kElideAbove are shortened; groups never are (the sheet's main group
+-- holds the create button and the address).
+on shouldElide(axRole, kidCount)
+	return (axRole is in kElideRoles) and (kidCount > kElideAbove)
+end shouldElide
+
+-- One line standing for children firstIdx..lastIdx, all of class `cls`, so their addresses stay composable.
+on elisionLine(firstIdx, lastIdx, cls, firstNth, lastNth)
+	return "[UI element " & firstIdx & "…" & lastIdx & " | " & cls & " " & firstNth & "…" & lastNth & "]  … " & (lastIdx - firstIdx + 1) & " more " & cls & "s not listed"
+end elisionLine
+
+-- item idx of lst, or fallback when lst is missing value, too short, or the item is missing value.
+on itemOr(lst, idx, fallback)
+	try
+		if lst is missing value then return fallback
+		set v to item idx of lst
+		if v is missing value then return fallback
+		return v
+	end try
+	return fallback
+end itemOr
 
 on shellOr(cmd, fallback)
 	try
@@ -524,82 +584,180 @@ on dumpSystemSettings()
 		set end of report to "System Settings is not running — nothing to dump."
 		return
 	end if
+	set retriesLeft to kRetryBudget
+	set failedReads to 0
 	tell application "System Events" to tell application process "System Settings"
 		set winCount to count of windows
 		set end of report to "--- accessibility tree (" & winCount & " window(s); depth ≤ " & kMaxDepth & ", ≤ " & kMaxElements & " elements) ---"
 		set end of report to "Each line: <indent>[UI element N | <class> M]  role  id=…  title=…  desc=…  value=…   — compose paths bottom-up, e.g. 'group 3 of scroll area 1 of … of window 1'."
+		set end of report to "Sheets are listed before the rest of their window. Lists, outlines and tables with more than " & kElideAbove & " children show the first " & kElideHead & " and the last one; a '…' line stands for the rest. '? [err N: …]' = System Events could not read that element."
 		repeat with w from 1 to winCount
-			my dumpTree(window w, 0, "window " & w)
+			set d to my describeOne(window w)
+			my dumpTree(window w, 0, "window " & w, axRole of d, descLine of d)
 		end repeat
 	end tell
 	if elementCount ≥ kMaxElements then set end of report to "(stopped after " & kMaxElements & " elements)"
+	if failedReads > 0 then set end of report to "(" & failedReads & " read(s) failed — see the '? [err' lines)"
 end dumpSystemSettings
 
--- Recursive. `label` is this element's own address relative to its parent (e.g. "group 3").
-on dumpTree(el, depth, label)
+-- Recursive. `label` is this element's own address relative to its parent (e.g. "group 3"). `axRole` and
+-- `descLine` were read by the parent's batch (or by describeOne for a window).
+on dumpTree(el, depth, label, axRole, descLine)
 	if depth > kMaxDepth then return
 	if elementCount ≥ kMaxElements then return
 	set elementCount to elementCount + 1
-	set end of report to (my indent(depth)) & "[" & label & "]  " & (my describe(el))
-
-	set kids to {}
-	try
-		tell application "System Events" to set kids to every UI element of el
-	end try
-	if (count of kids) is 0 then return
-
-	-- Per-class sibling counters so labels match AppleScript addressing ("group 3", "button 2").
-	set kidRoles to {}
-	repeat with k in kids
-		set r to ""
-		try
-			tell application "System Events" to set r to role of k
-		end try
-		set end of kidRoles to r
-	end repeat
-	repeat with idx from 1 to (count of kids)
-		set cls to my roleToClass(item idx of kidRoles)
-		set nth to 0
-		repeat with j from 1 to idx
-			if (my roleToClass(item j of kidRoles)) is cls then set nth to nth + 1
-		end repeat
-		my dumpTree(item idx of kids, depth + 1, "UI element " & idx & " | " & cls & " " & nth)
-	end repeat
+	set end of report to (my indent(depth)) & "[" & label & "]  " & descLine
+	my dumpChildren(el, depth, axRole)
 end dumpTree
 
-on describe(el)
+-- Children of one parent: batched read, per-class sibling counters, sheets first, long lists shortened.
+on dumpChildren(el, depth, parentRole)
+	set batch to my fetchChildren(el)
+	set kids to kids of batch
+	set n to count of kids
+	if n is 0 then
+		if (readError of batch) is not "" then set end of report to (my indent(depth + 1)) & "(children unavailable: " & (readError of batch) & ")"
+		return
+	end if
+
+	-- Describe every child up front: from the batch when it succeeded, one by one otherwise.
+	set descs to {}
+	repeat with idx from 1 to n
+		if (props of batch) is missing value then
+			set end of descs to my describeOne(item idx of kids)
+		else
+			set end of descs to my describeFromProps(item idx of (props of batch), my itemOr(ids of batch, idx, ""))
+		end if
+	end repeat
+
+	-- Per-class sibling counters so labels match AppleScript addressing ("group 3", "button 2").
+	set classes to {}
+	repeat with idx from 1 to n
+		set end of classes to my roleToClass(axRole of (item idx of descs))
+	end repeat
+	set nths to {}
+	repeat with idx from 1 to n
+		set nth to 0
+		repeat with j from 1 to idx
+			if (item j of classes) is (item idx of classes) then set nth to nth + 1
+		end repeat
+		set end of nths to nth
+	end repeat
+
+	-- Sheets first, then everything else in AX order.
+	set visitOrder to {}
+	repeat with idx from 1 to n
+		if (item idx of classes) is "sheet" then set end of visitOrder to idx
+	end repeat
+	set hasSheets to (count of visitOrder) > 0
+	repeat with idx from 1 to n
+		if (item idx of classes) is not "sheet" then set end of visitOrder to idx
+	end repeat
+
+	-- Elide children kElideHead+1 .. n-1 that share the class of child kElideHead (only in lists/outlines/tables,
+	-- which never contain sheets, so visitOrder is the identity there).
+	set elide to (not hasSheets) and my shouldElide(parentRole, n)
+	set runStart to 0
+	repeat with pos from 1 to n
+		set idx to item pos of visitOrder
+		if elide and idx > kElideHead and idx < n and (item idx of classes) is (item kElideHead of classes) then
+			if runStart is 0 then set runStart to idx
+		else
+			if runStart > 0 then
+				set end of report to (my indent(depth + 1)) & (my elisionLine(runStart, idx - 1, item kElideHead of classes, item runStart of nths, item (idx - 1) of nths))
+				set runStart to 0
+			end if
+			my dumpTree(item idx of kids, depth + 1, "UI element " & idx & " | " & (item idx of classes) & " " & (item idx of nths), axRole of (item idx of descs), descLine of (item idx of descs))
+		end if
+	end repeat
+end dumpChildren
+
+-- Three Apple Events per parent instead of four per child: children, their `properties`, their AXIdentifiers.
+-- `props`/`ids` are missing value when a batch failed or its count does not match the children (tree changed
+-- between reads) — the caller then describes one by one. `readError` is set only when even the children fetch failed.
+on fetchChildren(el)
+	set kids to {}
+	set props to missing value
+	set ids to missing value
+	set readError to ""
+	try
+		with timeout of kBatchTimeout seconds
+			tell application "System Events"
+				set kids to every UI element of el
+				if (count of kids) > 0 then
+					set props to properties of every UI element of el
+					try
+						set ids to value of attribute "AXIdentifier" of every UI element of el
+					end try
+				end if
+			end tell
+		end timeout
+	on error errMsg number errNum
+		if (count of kids) is 0 then set readError to my errorTag(errNum, errMsg)
+		set props to missing value
+	end try
+	if props is not missing value and (count of props) is not (count of kids) then set props to missing value
+	if ids is not missing value and (count of ids) is not (count of kids) then set ids to missing value
+	return {kids:kids, props:props, ids:ids, readError:readError}
+end fetchChildren
+
+-- One element on its own (a window, or a child whose parent's batch failed). A failure is recorded as
+-- '? [err N: message]' and retried once after 0.3 s while the dump-wide budget lasts — on Tahoe the WebKit
+-- part of the tree drops out for a moment and comes back.
+on describeOne(el)
+	repeat with attempt from 1 to 2
+		try
+			with timeout of kReadTimeout seconds
+				tell application "System Events"
+					set p to properties of el
+					set aid to missing value
+					try
+						set aid to value of attribute "AXIdentifier" of el
+					end try
+				end tell
+			end timeout
+			return my describeFromProps(p, aid)
+		on error errMsg number errNum
+			if attempt is 2 or retriesLeft ≤ 0 then
+				set failedReads to failedReads + 1
+				return {axRole:"", descLine:my errorTag(errNum, errMsg)}
+			end if
+			set retriesLeft to retriesLeft - 1
+			delay 0.3
+		end try
+	end repeat
+	return {axRole:"", descLine:"?"}
+end describeOne
+
+-- Builds the report line from a `properties` record. No Apple Events: the tell block only supplies terminology.
+on describeFromProps(p, aid)
 	set r to "?"
 	set sub to ""
 	set ttl to ""
 	set dsc to ""
 	set val to ""
-	set aid to ""
 	set en to ""
-	try
-		tell application "System Events"
-			set p to properties of el
-			set r to role of p
-			try
-				if subrole of p is not missing value then set sub to subrole of p
-			end try
-			try
-				if name of p is not missing value then set ttl to name of p
-			end try
-			try
-				if description of p is not missing value then set dsc to description of p
-			end try
-			try
-				if value of p is not missing value then set val to (value of p) as text
-			end try
-			try
-				set en to (enabled of p) as text
-			end try
-			try
-				set aid to value of attribute "AXIdentifier" of el
-				if aid is missing value then set aid to ""
-			end try
-		end tell
-	end try
+	tell application "System Events"
+		try
+			if role of p is not missing value then set r to role of p
+		end try
+		try
+			if subrole of p is not missing value then set sub to subrole of p
+		end try
+		try
+			if name of p is not missing value then set ttl to name of p
+		end try
+		try
+			if description of p is not missing value then set dsc to description of p
+		end try
+		try
+			if value of p is not missing value then set val to (value of p) as text
+		end try
+		try
+			set en to (enabled of p) as text
+		end try
+	end tell
+	if aid is missing value then set aid to ""
 	set descLine to r
 	if sub is not "" then set descLine to descLine & "/" & sub
 	if aid is not "" then set descLine to descLine & "  id=\"" & aid & "\""
@@ -607,8 +765,8 @@ on describe(el)
 	if dsc is not "" and dsc is not ttl then set descLine to descLine & "  desc=\"" & (my shorten(dsc, 60)) & "\""
 	if val is not "" then set descLine to descLine & "  value=\"" & (my shorten(val, 60)) & "\""
 	if en is "false" then set descLine to descLine & "  disabled"
-	return descLine
-end describe
+	return {axRole:r, descLine:descLine}
+end describeFromProps
 
 on indent(depth)
 	set s to ""
