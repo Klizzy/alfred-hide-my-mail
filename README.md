@@ -34,11 +34,13 @@ The workflow will open the MacOS System Settings, navigate to the appropriate se
 2. Active [iCloud+](https://support.apple.com/guide/icloud/mm9d9012c9e8/icloud) subscription
 3. macOS:
 
-| macOS | Status |
-|-------|--------|
-| Sequoia 15.x | ✅ |
-| Tahoe 26.x | ✅ |
-| Sonoma 14.x | ❌ Not supported by v2.0 — use [release v.1.1](https://github.com/Klizzy/alfred-hide-my-mail/releases/tag/v.1.1) or [release v.1.0](https://github.com/Klizzy/alfred-hide-my-mail/releases/tag/v.1.0) (v.1.2 switched the element indices to Sequoia) |
+| macOS        | Supported | Workflow release |
+|--------------|-----------|------------------|
+| Tahoe 26.x   | ✅        | v2.0 (latest)    |
+| Sequoia 15.x | ✅        | v2.0 (latest)    |
+| Sonoma 14.x  | ❌        | [v.1.1](https://github.com/Klizzy/alfred-hide-my-mail/releases/tag/v.1.1) or [v.1.0](https://github.com/Klizzy/alfred-hide-my-mail/releases/tag/v.1.0) |
+
+Sonoma is not supported from v1.2 on (v1.2 switched to Sequoia's layout), so use one of the older releases there.
 
 The workflow detects your macOS version and uses the matching navigation path. Button labels are recognised in English, German, French and Spanish.
 
