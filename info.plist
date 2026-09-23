@@ -74,70 +74,13 @@
 				<key>escaping</key>
 				<integer>76</integer>
 				<key>script</key>
-				<string>on run argv
-  tell application "System Settings"
-    activate
-    delay 0.5
-    reveal pane id "com.apple.systempreferences.AppleIDSettings*AppleIDSettings"
-  end tell
-  tell application "System Events"
-    tell application process "System Settings"
-      tell splitter group 1 of group 1 of window 1
-        tell group 2 to tell group 1 to tell scroll area 1 to tell group 3
-          repeat until UI element 1 exists
-            delay 0
-          end repeat
-          click UI element 1
-          repeat until UI element 5 exists
-            delay 0
-          end repeat
-          click UI element 5
-        end tell
-      end tell
-      repeat until group 1 of group 1 of UI element 1 of scroll area 1 of sheet 1 of window 1 exists
-        delay 0
-      end repeat
-      tell window 1 to tell sheet 1 to tell scroll area 1 to tell UI element 1
-         tell group 1 of group 1
-           click UI element 5 of group 1
-           repeat until text field 1 of group 4 exists
-             delay 0
-           end repeat
-           click text field 1 of group 4
-           set value of text field 1 of group 4 to argv
-         end tell
-         tell group 1 to tell group 2 to tell group 1
-           repeat until UI element 1 of group 2 exists
-             delay 0
-           end repeat
-           click UI element 1 of group 2
-           repeat until UI element 1 of group 1 exists
-             delay 0
-           end repeat
-           click UI element 1 of group 1
-           repeat until UI element 1 of group 2 exists
-             delay 0
-           end repeat
-           click UI element 1 of group 2
-           repeat until UI element 1 of group 1 exists
-             delay 0
-           end repeat
-           click UI element 1 of group 1
-         end tell
-       end tell
-    end tell
-  end tell
-  tell application "System Settings"
-    delay 1
-    quit
-  end tell
-end run</string>
+				<string></string>
 				<key>scriptargtype</key>
 				<integer>1</integer>
 				<key>scriptfile</key>
-				<string></string>
+				<string>src/hide-my-mail.applescript</string>
 				<key>type</key>
-				<integer>6</integer>
+				<integer>8</integer>
 			</dict>
 			<key>type</key>
 			<string>alfred.workflow.action.script</string>
@@ -156,9 +99,9 @@ end run</string>
 				<key>removeextension</key>
 				<false/>
 				<key>text</key>
-				<string>iCloud mail has been added to your clipboard</string>
+				<string>{query}</string>
 				<key>title</key>
-				<string>Success!</string>
+				<string>Hide My Mail</string>
 			</dict>
 			<key>type</key>
 			<string>alfred.workflow.output.notification</string>
@@ -207,7 +150,14 @@ The workflow will open the MacOS System Settings, navigate to the appropriate se
 ---
 1. Alfred 5.1 or later
 2. Active [iCloud+](https://support.apple.com/guide/icloud/mm9d9012c9e8/icloud) subscription
-3. macOS Sequoia 15.x (later versions are untested and may require UI element adjustments)
+3. macOS Sequoia 15.x or Tahoe 26.x
+
+## Diagnostics
+
+---
+The notification shows the created address, or `Failed: …` with the step. On failure a diagnosis file is written to `~/Desktop/hide-my-mail-diagnosis.txt` (the next failure overwrites it) — attach it to a GitHub issue.
+
+If System Settings just opens and nothing happens, make sure Alfred is enabled under System Settings → Privacy &amp; Security → Accessibility.
 
 ## Configuration
 
@@ -250,7 +200,7 @@ The main script is heavily inspired by a created Shortcut from [this reddit thre
 		<key>AC04F4E8-31B4-482D-A1BA-FADCC7CCDC77</key>
 		<dict>
 			<key>note</key>
-			<string>Applescript - GUI Scripting</string>
+			<string>External Script — src/hide-my-mail.applescript (v2.0)</string>
 			<key>xpos</key>
 			<real>695</real>
 			<key>ypos</key>
@@ -282,7 +232,7 @@ The main script is heavily inspired by a created Shortcut from [this reddit thre
 		</dict>
 	</array>
 	<key>version</key>
-	<string>1.2</string>
+	<string>2.0</string>
 	<key>webaddress</key>
 	<string>https://github.com/Klizzy/alfred-hide-my-mail</string>
 </dict>
