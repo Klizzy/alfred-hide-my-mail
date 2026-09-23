@@ -32,10 +32,13 @@ property kHideMyEmailTileIds : {"six-pack-card-Hide My Email", "six-pack-card-Eâ
 property kSettleTicks : 10 -- the card count must be unchanged for 10 x 0.1 s before guessing by sheet shape
 property kProbeNodes : 12 -- containers the sheet-text probe may visit (4 batched reads each)
 property navLog : {}
+property navStart : missing value -- set by createAddress; nav lines then carry [+Ns]
 
 -- One line per navigation step, kept in memory; on failure it goes into the diagnosis file, on success it is dropped.
 on navNote(msg)
-	set end of navLog to (msg as text)
+	set prefix to ""
+	if navStart is not missing value then set prefix to "[+" & ((current date) - navStart) & "s] "
+	set end of navLog to prefix & (msg as text)
 end navNote
 
 on navLogText()
@@ -69,12 +72,18 @@ on openICloudPane(contentGroupIndex)
 			my navNote("reveal pane " & kICloudPaneId & ": FAILED (" & e & ")")
 		end try
 	end tell
+	-- try: right after launch System Events may not know the process yet (-1728); keep polling instead of failing.
+	set haveWindow to false
 	repeat with i from 1 to kMaxTicks
-		tell application "System Events" to tell application process "System Settings"
-			if (exists window 1) then exit repeat
-		end tell
+		try
+			tell application "System Events" to tell application process "System Settings"
+				set haveWindow to (exists window 1)
+			end tell
+		end try
+		if haveWindow then exit repeat
 		my waitTick(i, "System Settings window")
 	end repeat
+	my navNote("window: " & my windowTitle())
 	if my waitForICloudGrid(contentGroupIndex, 30) then
 		my navNote("iCloud+ cards: " & my cardIdsText(contentGroupIndex))
 		return
@@ -372,6 +381,7 @@ on createAddress(labelText)
 	set clipBefore to my clipboardText()
 	set shownAddress to ""
 	set navLog to {}
+	set navStart to current date
 	try
 		my launchSystemSettings()
 		my openICloudPane(my contentGroupIndexFor(major))
@@ -582,10 +592,17 @@ on runSelfTest()
 	my check(report, "kHideMyEmailTileIds has the German id with ASCII hyphen", "six-pack-card-E-Mail-Adresse verbergen" is in kHideMyEmailTileIds)
 	my check(report, "every tile id starts with kTilePrefix", my allStartWith(kHideMyEmailTileIds, kTilePrefix))
 	set navLog to {}
+	set navStart to missing value
 	my navNote("first")
 	my navNote("second")
 	my check(report, "navNote/navLogText join with linefeed", my navLogText() is "first" & linefeed & "second")
 	set navLog to {}
+	set navStart to current date
+	my navNote("x")
+	my check(report, "navNote prefixes elapsed seconds while navStart is set", my navLogText() starts with "[+" and my navLogText() ends with "s] x")
+	set navLog to {}
+	set navStart to missing value
+	my check(report, "settingsGone returns a boolean", class of (my settingsGone()) is boolean)
 	my check(report, "firstTextIn is best effort: returns \"\" on a non-element", my firstTextIn(missing value) is "")
 	my check(report, "hideMyEmailCandidates returns a list even without System Settings", class of (my hideMyEmailCandidates(2)) is list)
 	my check(report, "looksLikeAddress accepts x.y@icloud.com", my looksLikeAddress("x.y@icloud.com"))
@@ -726,32 +743,53 @@ end sheetOpen
 -- SYSTEM SETTINGS LIFECYCLE
 ----------------------------------------------------------------------
 
--- Graceful quit first (lets a finished sheet commit), then killall so a stuck modal can never hang us.
+-- LaunchServices can report a dying instance as gone while its process still answers System Events; ask both.
+on settingsGone()
+	if application "System Settings" is running then return false
+	return (do shell script "pgrep -x 'System Settings' >/dev/null && echo alive || echo gone") is "gone"
+end settingsGone
+
+-- Polls settingsGone every 0.1 s for up to `ticks` ticks. Returns at once when System Settings is not running.
+on waitUntilGone(ticks)
+	repeat ticks times
+		if my settingsGone() then return true
+		delay 0.1
+	end repeat
+	return my settingsGone()
+end waitUntilGone
+
+-- Graceful quit first (lets a finished sheet commit), then killall, then kill -9: a hung instance ignores
+-- SIGTERM, and the next launch would otherwise activate into it while it dies (-1728 on the process).
 on quitSystemSettings()
 	try
 		with timeout of 3 seconds
 			tell application "System Settings" to quit
 		end timeout
 	end try
-	repeat 20 times
-		if application "System Settings" is not running then return
-		delay 0.1
-	end repeat
+	if my waitUntilGone(20) then return
 	do shell script "killall 'System Settings' 2>/dev/null || true"
-	repeat 30 times
-		if application "System Settings" is not running then return
-		delay 0.1
-	end repeat
+	if my waitUntilGone(30) then return
+	do shell script "killall -9 'System Settings' 2>/dev/null || true"
+	my waitUntilGone(20)
 end quitSystemSettings
 
--- Clean start: quit, relaunch, front. The pane is opened by openICloudPane (shared block), which also waits
--- for the iCloud+ grid instead of trusting `exists window 1`.
+-- Clean start: quit, relaunch, front, wait until System Events sees the process. The pane is opened by
+-- openICloudPane, which also waits for the iCloud+ grid instead of trusting `exists window 1`.
 on launchSystemSettings()
 	my quitSystemSettings()
 	tell application "System Settings"
 		activate
 		delay 0.5
 	end tell
+	set started to false
+	repeat with i from 1 to kMaxTicks
+		try
+			tell application "System Events" to set started to (exists application process "System Settings")
+		end try
+		if started then exit repeat
+		my waitTick(i, "System Settings to start")
+	end repeat
+	my navNote("System Settings started")
 end launchSystemSettings
 
 ----------------------------------------------------------------------
