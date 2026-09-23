@@ -9,6 +9,8 @@
 
 property kVersion : "2.0"
 property kMaxTicks : 100 -- 100 x 0.1 s = 10 s per wait
+property kPressWaitTicks : 30 -- 3 s after a press before it counts as lost and is repeated
+property kMaxPresses : 3 -- presses per button; 3 x 3 s stays within the old 10 s wait
 property kIssuesUrl : "https://github.com/Klizzy/alfred-hide-my-mail/issues"
 property kDiagnosisFile : "~/Desktop/hide-my-mail-diagnosis.txt"
 
@@ -102,28 +104,45 @@ on openICloudPane(contentGroupIndex)
 end openICloudPane
 
 -- Open the Hide My Email sheet and return the pressed card's id.
--- Pass 1 (up to 3 s, the cards render asynchronously): the card whose id is in kHideMyEmailTileIds.
+-- Pass 1 (up to 3 s for the card to appear): the card whose id is in kHideMyEmailTileIds, re-pressed if the press is lost.
 -- Pass 2 (unknown locale): once the grid stopped changing, press the cards last-to-first and keep the first
 -- whose sheet has the Hide My Email shape; dismiss the others. The error lists every card id so the
 -- notification alone tells a maintainer which id to add to kHideMyEmailTileIds.
 on pressHideMyEmailTile(contentGroupIndex, useAXPress)
+	-- Pass 1. On a cold start the grid renders twice; a press on the first render can be lost or throw (-10000).
+	-- Nothing after 3 s → re-read the grid and press the current card again (≤ kMaxPresses). A sheet that is
+	-- up but not recognised yet is waited for, never pressed through.
+	set presses to 0
+	set lastAid to ""
 	repeat 30 times
 		repeat with b in my hideMyEmailCandidates(contentGroupIndex)
 			set aid to my tileId(b)
 			if aid is in kHideMyEmailTileIds then
-				my pressTile(b, useAXPress)
-				my navNote("pressed " & aid)
-				repeat with j from 1 to kMaxTicks
-					if my hideMyEmailSheetOpen() then exit repeat
-					if j ≥ kMaxTicks then my navNote("after pressing " & aid & ": sheet open: " & (my anySheetOpen() as text) & "; sheet text: " & my sheetFirstText())
-					my waitTick(j, "Hide My Email sheet (after pressing " & aid & ")")
-				end repeat
-				my navNote("Hide My Email sheet open")
-				return aid
+				set presses to presses + 1
+				set lastAid to aid
+				my navNote("pressing " & aid & " (attempt " & presses & ")")
+				try
+					my pressTile(b, useAXPress)
+				on error e number n
+					my navNote("pressing " & aid & " failed (" & n & ": " & e & ")")
+				end try
+				set sheetUp to my waitForHideMyEmailSheet(kPressWaitTicks)
+				set nextMove to my afterPress(sheetUp, my anySheetOpen(), presses)
+				if nextMove is "wait" then
+					set sheetUp to my waitForHideMyEmailSheet(kMaxTicks - kPressWaitTicks)
+					set nextMove to my afterPress(sheetUp, false, kMaxPresses)
+				end if
+				if nextMove is "done" then
+					my navNote("Hide My Email sheet open")
+					return aid
+				end if
+				if nextMove is "give up" then my failHideMyEmailSheet(aid, presses)
+				exit repeat -- "press again": re-read the grid, the pressed card may have been replaced
 			end if
 		end repeat
 		delay 0.1
 	end repeat
+	if presses > 0 then my failHideMyEmailSheet(lastAid, presses)
 
 	my navNote("no known Hide My Email id among: " & my cardIdsText(contentGroupIndex) & " — trying the cards by sheet shape")
 	my waitForSettledGrid(contentGroupIndex)
@@ -253,18 +272,22 @@ end windowTitle
 -- (Sequoia and Tahoe). Other iCloud+ sheets nest their scroll area inside a group (Private Relay) and fail this.
 on hideMyEmailSheetOpen()
 	try
-		tell application "System Events" to tell application process "System Settings"
-			return (exists group 1 of group 1 of UI element 1 of scroll area 1 of sheet 1 of window 1)
-		end tell
+		with timeout of 2 seconds
+			tell application "System Events" to tell application process "System Settings"
+				return (exists group 1 of group 1 of UI element 1 of scroll area 1 of sheet 1 of window 1)
+			end tell
+		end timeout
 	end try
 	return false
 end hideMyEmailSheetOpen
 
 on anySheetOpen()
 	try
-		tell application "System Events" to tell application process "System Settings"
-			return (exists sheet 1 of window 1)
-		end tell
+		with timeout of 2 seconds
+			tell application "System Events" to tell application process "System Settings"
+				return (exists sheet 1 of window 1)
+			end tell
+		end timeout
 	end try
 	return false
 end anySheetOpen
@@ -357,6 +380,32 @@ on pressTile(b, useAXPress)
 		end if
 	end tell
 end pressTile
+
+-- Next move after a press and its short wait. Pure (no Apple Events) so the self-test pins it.
+-- targetReady: the expected screen is up. opening: something else is on its way (a sheet, or the pressed
+-- button is gone) — wait for it instead of pressing again, a second press could hit the next screen.
+on afterPress(targetReady, opening, presses)
+	if targetReady then return "done"
+	if opening then return "wait"
+	if presses < kMaxPresses then return "press again"
+	return "give up"
+end afterPress
+
+-- Polls hideMyEmailSheetOpen for up to maxTicks x 0.1 s, by wall clock too, so a slow read cannot stretch it.
+on waitForHideMyEmailSheet(maxTicks)
+	set t0 to current date
+	repeat maxTicks times
+		if my hideMyEmailSheetOpen() then return true
+		if ((current date) - t0) > (maxTicks / 10) then return false
+		delay 0.1
+	end repeat
+	return false
+end waitForHideMyEmailSheet
+
+on failHideMyEmailSheet(aid, presses)
+	my navNote("after pressing " & aid & " " & presses & "x: sheet open: " & (my anySheetOpen() as text) & "; sheet text: " & my sheetFirstText())
+	error "Timeout waiting for Hide My Email sheet (after pressing " & aid & ")"
+end failHideMyEmailSheet
 
 on run argv
 	if (count of argv) > 0 then
@@ -603,6 +652,14 @@ on runSelfTest()
 	set navLog to {}
 	set navStart to missing value
 	my check(report, "settingsGone returns a boolean", class of (my settingsGone()) is boolean)
+	my check(report, "afterPress: target up → done", my afterPress(true, false, 1) is "done")
+	my check(report, "afterPress: something opening → wait, never press again", my afterPress(false, true, 1) is "wait")
+	my check(report, "afterPress: something opening on the last press → still wait", my afterPress(false, true, kMaxPresses) is "wait")
+	my check(report, "afterPress: nothing happened → press again", my afterPress(false, false, 1) is "press again")
+	my check(report, "afterPress: nothing happened after kMaxPresses → give up", my afterPress(false, false, kMaxPresses) is "give up")
+	set t0 to current date
+	set sheetSeen to my waitForHideMyEmailSheet(3)
+	my check(report, "waitForHideMyEmailSheet returns a boolean within ~1 s", class of sheetSeen is boolean and ((current date) - t0) ≤ 2)
 	my check(report, "firstTextIn is best effort: returns \"\" on a non-element", my firstTextIn(missing value) is "")
 	my check(report, "hideMyEmailCandidates returns a list even without System Settings", class of (my hideMyEmailCandidates(2)) is list)
 	my check(report, "looksLikeAddress accepts x.y@icloud.com", my looksLikeAddress("x.y@icloud.com"))
