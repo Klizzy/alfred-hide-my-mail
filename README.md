@@ -62,7 +62,9 @@ The complete process is automated with this workflow, so you don't have to click
 
 ## Troubleshooting
 
-**"Failed: Timeout waiting for System Settings to start", "… System Settings window" or "… iCloud pane" right at the start / System Settings just opens.** Alfred needs Accessibility permission to click through System Settings. Most Alfred users already have it (Snippets and Clipboard History ask for it), and macOS normally prompts on first use — if it didn't, enable it under System Settings → Privacy & Security → Accessibility. If Alfred is already listed, remove and re-add it, or run `tccutil reset Accessibility com.runningwithcrayons.Alfred` in Terminal and trigger the workflow again.
+**"Failed: Timeout waiting for System Settings to start".** System Settings did not launch within 10 s — just try again; attach the diagnosis file if it keeps happening.
+
+**"Failed: … System Settings window" or "… iCloud pane" right at the start / System Settings just opens.** Alfred needs Accessibility permission to click through System Settings. Most Alfred users already have it (Snippets and Clipboard History ask for it), and macOS normally prompts on first use — if it didn't, enable it under System Settings → Privacy & Security → Accessibility. If Alfred is already listed, remove and re-add it, or run `tccutil reset Accessibility com.runningwithcrayons.Alfred` in Terminal and trigger the workflow again.
 
 **"Failed: Hide My Email tile not found among the iCloud+ cards (…)".** Your system language is not in the workflow's identifier table yet and the fallback could not recognise the sheet. Open an issue and paste the whole notification text — the list in the brackets is exactly what is needed to add your language.
 

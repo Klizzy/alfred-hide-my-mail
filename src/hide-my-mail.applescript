@@ -133,7 +133,9 @@ on pressHideMyEmailTile(contentGroupIndex, useAXPress)
 						my navNote("pressing " & aid & " failed (" & n & ": " & e & ")")
 					end try
 					set sheetUp to my waitForHideMyEmailSheet(kPressWaitTicks)
-					set nextMove to my afterPress(sheetUp, my sheetOpening(), presses)
+					set opening to false
+					if not sheetUp then set opening to my sheetOpening()
+					set nextMove to my afterPress(sheetUp, opening, presses)
 					if nextMove is "wait" then
 						set sheetUp to my waitForHideMyEmailSheet(kMaxTicks - kPressWaitTicks)
 						set nextMove to my afterPress(sheetUp, false, kMaxPresses)
@@ -555,7 +557,8 @@ end runSequoia
 
 ----------------------------------------------------------------------
 -- TAHOE 26.x — card by identifier (shared), then PR #6's sequence (AXPress, named buttons) plus PR #7's
--- sheet-index detection and address scrape. Positional fallbacks are v1.2's indices.
+-- sheet-index detection and address scrape. Positional fallback for Create is the main group's button 1
+-- (tahoeFirstButton); the other positional fallbacks are v1.2's indices.
 ----------------------------------------------------------------------
 
 on runTahoe(labelText)
@@ -572,7 +575,7 @@ on runTahoe(labelText)
 				set createBtn to my tahoeNamedCreateButton()
 				if createBtn is missing value and i ≥ 30 then
 					set createBtn to my tahoeFirstButton()
-					set createHow to "button 1"
+					if createBtn is not missing value then set createHow to "button 1"
 				end if
 				if createBtn is not missing value then exit repeat
 				my waitTick(i, "Create New Address button")
@@ -594,7 +597,10 @@ on runTahoe(labelText)
 				set createSheet to my waitForLabelField(kPressWaitTicks)
 				if createSheet > 0 then exit repeat
 				set againBtn to my tahoeNamedCreateButton()
-				set nextMove to my afterPress(false, (againBtn is missing value) or (my secondSheetOpening()), presses)
+				set btnGone to (againBtn is missing value)
+				set opening to btnGone or my secondSheetOpening()
+				my navNote("after Create press " & presses & ": named button gone: " & btnGone & ", second sheet/busy: " & opening)
+				set nextMove to my afterPress(false, opening, presses)
 				if nextMove is "wait" then set createSheet to my waitForLabelField(kMaxTicks - kPressWaitTicks)
 				if nextMove is not "press again" then exit repeat
 				set createBtn to againBtn
@@ -693,7 +699,7 @@ on runSelfTest()
 	my check(report, "afterPress: nothing happened after kMaxPresses → give up", my afterPress(false, false, kMaxPresses) is "give up")
 	set t0 to current date
 	set sheetSeen to my waitForHideMyEmailSheet(3)
-	my check(report, "waitForHideMyEmailSheet returns a boolean within ~1 s", class of sheetSeen is boolean and ((current date) - t0) ≤ 2)
+	my check(report, "waitForHideMyEmailSheet returns a boolean within its 3 s bound", class of sheetSeen is boolean and ((current date) - t0) ≤ 3)
 	my check(report, "labelFieldSheet never throws and returns an integer", class of (my labelFieldSheet()) is integer)
 	set t0 to current date
 	set sheetSeen to my secondSheetOpening()
@@ -798,17 +804,22 @@ end looksLikeAddress
 ----------------------------------------------------------------------
 
 -- First element in `candidates` (a list of buttons) whose title or description is in nameList, else missing value.
+-- Bounded to 2 s total and never throws (Sequoia calls this unguarded).
 on pickNamed(candidates, nameList)
-	tell application "System Events"
-		repeat with b in candidates
-			try
-				if (name of b) is in nameList then return contents of b
-			end try
-			try
-				if (description of b) is in nameList then return contents of b
-			end try
-		end repeat
-	end tell
+	try
+		with timeout of 2 seconds
+			tell application "System Events"
+				repeat with b in candidates
+					try
+						if (name of b) is in nameList then return contents of b
+					end try
+					try
+						if (description of b) is in nameList then return contents of b
+					end try
+				end repeat
+			end tell
+		end timeout
+	end try
 	return missing value
 end pickNamed
 
