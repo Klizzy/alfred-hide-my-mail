@@ -19,11 +19,16 @@ property kRetryBudget : 30 -- single-element re-reads allowed per dump (0.3 s ea
 property kElideRoles : {"AXList", "AXOutline", "AXTable"}
 property kElideAbove : 12 -- containers with more children than this are shortened…
 property kElideHead : 6 -- …to their first kElideHead children plus the last one
+property kMaxTimeouts : 3 -- AppleEvent timeouts (-1712) before the dump stops: System Settings is not answering
+property kDumpDeadline : 60 -- s; a longer dump stops, so a hung System Settings cannot hold back the notification
 
 property elementCount : 0
 property failedReads : 0
 property retriesLeft : 30
 property report : {}
+property dumpStart : missing value
+property timeoutsSeen : 0
+property dumpStopped : ""
 
 on run argv
 	if (count of argv) ≥ 1 and (item 1 of argv) is "--selftest" then return my runSelfTest()
@@ -73,6 +78,19 @@ on runSelfTest()
 
 	my check(results, "errorTag formats number and message", my errorTag(-1719, "Invalid index.") is "? [err -1719: Invalid index.]")
 	my check(results, "errorTag shortens long messages", (length of my errorTag(-1728, my repeatText("x", 200))) < 120)
+	my check(results, "dumpStopReason: no timeouts, no time used → go on", my dumpStopReason(0, 0) is "")
+	my check(results, "dumpStopReason: kMaxTimeouts AppleEvent timeouts → stop", my dumpStopReason(kMaxTimeouts, 0) starts with "System Settings stopped answering")
+	my check(results, "dumpStopReason: exactly kDumpDeadline s → go on", my dumpStopReason(0, kDumpDeadline) is "")
+	my check(results, "dumpStopReason: past kDumpDeadline → stop", my dumpStopReason(0, kDumpDeadline + 1) contains "time limit")
+	set dumpStart to missing value
+	set dumpStopped to ""
+	my check(results, "stopNow is false outside a dump", not my stopNow())
+	set seDe to "„System Events“ hat einen Fehler erhalten: "
+	my check(results, "stripSEPrefix drops the German System Events prefix", my stripSEPrefix(seDe & "Ungültiger Index.") is "Ungültiger Index.")
+	my check(results, "stripSEPrefix drops the English System Events prefix", my stripSEPrefix("System Events got an error: Invalid index.") is "Invalid index.")
+	my check(results, "stripSEPrefix keeps a message without prefix", my stripSEPrefix("Invalid index.") is "Invalid index.")
+	my check(results, "stripSEPrefix keeps a message that is only the prefix", my stripSEPrefix(seDe) is seDe)
+	my check(results, "errorTag keeps the useful part of a German timeout", my errorTag(-1712, seDe & "AppleEvent lieferte eine Zeitüberschreitung.") is "? [err -1712: AppleEvent lieferte eine Zeitüberschreitung.]")
 	my check(results, "shouldElide: long AXList", my shouldElide("AXList", 217))
 	my check(results, "shouldElide: long AXOutline", my shouldElide("AXOutline", 45))
 	my check(results, "shouldElide: AXList at the threshold is not elided", not my shouldElide("AXList", kElideAbove))
@@ -255,8 +273,32 @@ end repeatText
 
 -- What the dump prints instead of a bare "?" when System Events cannot read an element.
 on errorTag(errNum, errMsg)
-	return "? [err " & errNum & ": " & (my shorten(errMsg, 80)) & "]"
+	return "? [err " & errNum & ": " & (my shorten(my stripSEPrefix(errMsg), 80)) & "]"
 end errorTag
+
+-- Why the dump should stop now, "" to go on. Pure (no Apple Events) so the self-test pins it.
+on dumpStopReason(nTimeouts, elapsed)
+	if nTimeouts ≥ kMaxTimeouts then return "System Settings stopped answering (" & nTimeouts & " AppleEvent timeouts)"
+	if elapsed > kDumpDeadline then return "time limit of " & kDumpDeadline & " s reached"
+	return ""
+end dumpStopReason
+
+-- Latches dumpStopped once a stop reason appears. False outside a dump (dumpStart is missing value).
+on stopNow()
+	if dumpStopped is "" and dumpStart is not missing value then set dumpStopped to my dumpStopReason(timeoutsSeen, (current date) - dumpStart)
+	return dumpStopped is not ""
+end stopNow
+
+-- System Events starts every message with its own name (43 characters in German); without this the 80-character
+-- shortening in errorTag keeps the prefix and cuts the useful part.
+on stripSEPrefix(errMsg)
+	set s to errMsg as text
+	repeat with p in {"„System Events“ hat einen Fehler erhalten: ", "System Events got an error: "}
+		set px to p as text
+		if s starts with px and (length of s) > (length of px) then return text ((length of px) + 1) thru -1 of s
+	end repeat
+	return s
+end stripSEPrefix
 
 -- Lists/outlines/tables longer than kElideAbove are shortened; groups never are (the sheet's main group
 -- holds the create button and the address).
@@ -387,7 +429,9 @@ on environmentSummary()
 	set end of envLines to "Alfred: " & (my shellOr("defaults read '/Applications/Alfred 5.app/Contents/Info.plist' CFBundleShortVersionString", "not found in /Applications"))
 	set axEnabled to "unknown"
 	try
-		tell application "System Events" to set axEnabled to (UI elements enabled) as text
+		with timeout of 5 seconds
+			tell application "System Events" to set axEnabled to (UI elements enabled) as text
+		end timeout
 	end try
 	set end of envLines to "Accessibility (UI elements enabled for this process): " & axEnabled
 	set end of envLines to "System Settings running: " & ((application "System Settings" is running) as text)
@@ -421,8 +465,13 @@ on dumpSystemSettings()
 	end if
 	set retriesLeft to kRetryBudget
 	set failedReads to 0
+	set dumpStart to current date
+	set timeoutsSeen to 0
+	set dumpStopped to ""
 	tell application "System Events" to tell application process "System Settings"
-		set winCount to count of windows
+		with timeout of 5 seconds
+			set winCount to count of windows
+		end timeout
 		set end of report to "--- accessibility tree (" & winCount & " window(s); depth ≤ " & kMaxDepth & ", ≤ " & kMaxElements & " elements) ---"
 		set end of report to "Each line: <indent>[UI element N | <class> M]  role  id=…  title=…  desc=…  value=…   — compose paths bottom-up, e.g. 'group 3 of scroll area 1 of … of window 1'."
 		set end of report to "Sheets are listed before the rest of their window. Lists, outlines and tables with more than " & kElideAbove & " children show the first " & kElideHead & " and the last one; a '…' line stands for the rest. '? [err N: …]' = System Events could not read that element (its role in front when that could still be read); after an element of unknown role the sibling counts read '?'."
@@ -433,6 +482,8 @@ on dumpSystemSettings()
 	end tell
 	if elementCount ≥ kMaxElements then set end of report to "(stopped after " & kMaxElements & " elements)"
 	if failedReads > 0 then set end of report to "(" & failedReads & " read(s) failed — see the '? [err' lines)"
+	if dumpStopped is not "" then set end of report to "(dump stopped early: " & dumpStopped & ")"
+	set dumpStart to missing value
 end dumpSystemSettings
 
 -- Recursive. `label` is this element's own address relative to its parent (e.g. "group 3"). `axRole` and
@@ -440,6 +491,7 @@ end dumpSystemSettings
 on dumpTree(el, depth, label, axRole, descLine)
 	if depth > kMaxDepth then return
 	if elementCount ≥ kMaxElements then return
+	if my stopNow() then return
 	set elementCount to elementCount + 1
 	set end of report to (my indent(depth)) & "[" & label & "]  " & descLine
 	my dumpChildren(el, depth, axRole)
@@ -529,6 +581,7 @@ on fetchChildren(el)
 			end tell
 		end timeout
 	on error errMsg number errNum
+		if errNum is -1712 then set timeoutsSeen to timeoutsSeen + 1
 		if (count of kids) is 0 then set readError to my errorTag(errNum, errMsg)
 		set props to missing value
 	end try
@@ -541,6 +594,7 @@ end fetchChildren
 -- '? [err N: message]' and retried once after 0.3 s while the dump-wide budget lasts — on Tahoe the WebKit
 -- part of the tree drops out for a moment and comes back.
 on describeOne(el)
+	if my stopNow() then return {axRole:"", descLine:"? [not read: dump stopped]"}
 	repeat with attempt from 1 to 2
 		try
 			with timeout of kReadTimeout seconds
@@ -554,6 +608,7 @@ on describeOne(el)
 			end timeout
 			return my describeFromProps(p, aid)
 		on error errMsg number errNum
+			if errNum is -1712 then set timeoutsSeen to timeoutsSeen + 1
 			if attempt is 2 or retriesLeft ≤ 0 then
 				set failedReads to failedReads + 1
 				-- Keep the class if at all possible: without it every later sibling's class-nth is unknown.

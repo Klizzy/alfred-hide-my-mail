@@ -51,7 +51,7 @@ You can change the keyword to trigger the workflow by opening the Alfred Prefere
 
 The notification always tells you what really happened: `Created <address> — copied to your clipboard`, or `Failed: <step> …`.
 
-**When it fails, a diagnosis file is written automatically** to `~/Desktop/hide-my-mail-diagnosis.txt` with the System Settings layout at the moment of failure. Attach it to a [GitHub issue](https://github.com/Klizzy/alfred-hide-my-mail/issues). It contains the UI structure and your macOS/locale/Alfred versions. Long lists such as your saved address labels are shortened to a handful of entries, but the address shown in an open sheet is included — check the file before posting.
+**When it fails, a diagnosis file is written automatically** to `~/Desktop/hide-my-mail-diagnosis.txt` with the System Settings layout at the moment of failure. Attach it to a [GitHub issue](https://github.com/Klizzy/alfred-hide-my-mail/issues). It contains the UI structure and your macOS/locale/Alfred versions. Long lists such as your saved address labels are shortened to a handful of entries, but the address shown in an open sheet is included — check the file before posting. Writing it takes a few seconds; if System Settings stopped responding it gives up after about a minute and says so in the file.
 
 The file is overwritten by the next failure, so nothing piles up on your Desktop. Nothing is logged when a run succeeds.
 
