@@ -594,7 +594,7 @@ on runTahoe(labelText)
 				set createSheet to my waitForLabelField(kPressWaitTicks)
 				if createSheet > 0 then exit repeat
 				set againBtn to my tahoeNamedCreateButton()
-				set nextMove to my afterPress(false, (againBtn is missing value) or ((my sheetCount()) > 1), presses)
+				set nextMove to my afterPress(false, (againBtn is missing value) or (my secondSheetOpening()), presses)
 				if nextMove is "wait" then set createSheet to my waitForLabelField(kMaxTicks - kPressWaitTicks)
 				if nextMove is not "press again" then exit repeat
 				set createBtn to againBtn
@@ -695,7 +695,9 @@ on runSelfTest()
 	set sheetSeen to my waitForHideMyEmailSheet(3)
 	my check(report, "waitForHideMyEmailSheet returns a boolean within ~1 s", class of sheetSeen is boolean and ((current date) - t0) ≤ 2)
 	my check(report, "labelFieldSheet never throws and returns an integer", class of (my labelFieldSheet()) is integer)
-	my check(report, "sheetCount never throws and returns an integer", class of (my sheetCount()) is integer)
+	set t0 to current date
+	set sheetSeen to my secondSheetOpening()
+	my check(report, "secondSheetOpening returns a boolean within its 2 s bound", class of sheetSeen is boolean and ((current date) - t0) ≤ 3)
 	set probeBtn to my tahoeNamedCreateButton()
 	set probeBtn to my tahoeFirstButton()
 	my check(report, "tahoeNamedCreateButton / tahoeFirstButton never throw", true)
@@ -866,16 +868,21 @@ on waitForLabelField(maxTicks)
 	return 0
 end waitForLabelField
 
-on sheetCount()
+-- After a Create press: true while a second sheet is up (the create dialog on 26.6.x, PR #7), and — like
+-- sheetOpening — when the read runs out of its 2 s (-1712): a busy app is waited for, never pressed again.
+-- Other errors (process not there, -1728) are false.
+on secondSheetOpening()
 	try
 		with timeout of 2 seconds
 			tell application "System Events" to tell application process "System Settings"
-				return count of sheets of window 1
+				return (count of sheets of window 1) > 1
 			end tell
 		end timeout
+	on error number errNum
+		if errNum is -1712 then return true
 	end try
-	return 0
-end sheetCount
+	return false
+end secondSheetOpening
 
 -- Best effort: first static text under `axContainer` whose value looks like an address. "" if none.
 -- The parameter must NOT be named `container`: that is System Events terminology and would shadow the
