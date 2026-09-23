@@ -78,11 +78,14 @@ v_changelog=$(grep -m1 -E '^## v' CHANGELOG.md | sed 's/^## v//')
 ok "version $v_plist consistent between info.plist and CHANGELOG"
 
 ./package.sh >/dev/null
+# Read the listing once: `zipinfo | grep -q` under pipefail fails when grep exits early and zipinfo gets SIGPIPE.
+bundle_list=$(zipinfo -1 HideMyMail.alfredworkflow)
+bundle_long=$(zipinfo HideMyMail.alfredworkflow)
 for want in info.plist icon.png alfred-command.png src/hide-my-mail.applescript src/diagnose.applescript; do
-  zipinfo -1 HideMyMail.alfredworkflow | grep -qx "$want" || fail "bundle missing $want"
+  grep -qx "$want" <<<"$bundle_list" || fail "bundle missing $want"
 done
-[ "$(zipinfo -1 HideMyMail.alfredworkflow | wc -l | tr -d ' ')" = "5" ] || fail "bundle has unexpected extra files: $(zipinfo -1 HideMyMail.alfredworkflow | tr '\n' ' ')"
-[ "$(zipinfo HideMyMail.alfredworkflow | grep -cE '^-rwx.*src/.*\.applescript$')" = "2" ] || fail "bundled scripts lost their executable bit"
+[ "$(wc -l <<<"$bundle_list" | tr -d ' ')" = "5" ] || fail "bundle has unexpected extra files: $(tr '\n' ' ' <<<"$bundle_list")"
+[ "$(grep -cE '^-rwx.*src/.*\.applescript$' <<<"$bundle_long")" = "2" ] || fail "bundled scripts lost their executable bit"
 ok "bundle: exactly the 5 expected files, scripts executable"
 
 git check-ignore -q hide-my-mail-diagnosis.txt || fail "hide-my-mail-diagnosis*.txt must be gitignored (maintainer copies dumps into the repo root)"

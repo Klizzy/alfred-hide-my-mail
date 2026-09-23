@@ -42,7 +42,7 @@ property kTilePrefix : "six-pack-card-"
 -- are listed. en/de: from live dumps (Sequoia 15.8, Tahoe 26.6). fr/es: Apple's marketing names, unverified.
 property kHideMyEmailTileIds : {"six-pack-card-Hide My Email", "six-pack-card-E‑Mail-Adresse verbergen", "six-pack-card-E-Mail-Adresse verbergen", "six-pack-card-Masquer mon adresse e‑mail", "six-pack-card-Masquer mon adresse e-mail", "six-pack-card-Ocultar mi correo electrónico"}
 property kSettleTicks : 10 -- the card count must be unchanged for 10 x 0.1 s before guessing by sheet shape
-property kProbeNodes : 12 -- containers the sheet-text probe may visit (3 batched reads each)
+property kProbeNodes : 12 -- containers the sheet-text probe may visit (4 batched reads each)
 property navLog : {}
 
 -- One line per navigation step. The main script hands the log to the failure diagnosis, diagnose prints it.
@@ -283,8 +283,9 @@ on sheetFirstText()
 	return ""
 end sheetFirstText
 
--- Breadth-first over at most kProbeNodes containers, three batched reads each (role, name, value of every child),
--- 2 s per read. Returns the first non-empty name or value of an AXStaticText/AXHeading. Best effort: never throws.
+-- Breadth-first over at most kProbeNodes containers, four batched reads each (the children, then role, name and
+-- value of every child), 2 s per read. Returns the first non-empty name or value of an AXStaticText/AXHeading.
+-- Best effort: never throws.
 -- Replaces the unbounded whole-subtree read, which stalled 5 s and returned "" on the real Hide My Email sheet.
 on firstTextIn(axContainer)
 	set queue to {axContainer}
@@ -448,16 +449,52 @@ on runSelfTest()
 	my check(results, "siblingNths counts per class", my siblingNths({"group", "button", "group", "static text", "group"}, {true, true, true, true, true}) is {1, 1, 2, 1, 3})
 	my check(results, "siblingNths: an unknown role in the middle turns it and every later sibling into ?", my siblingNths({"group", "UI element", "group", "button"}, {true, false, true, true}) is {1, "?", "?", "?"})
 	my check(results, "siblingNths: an unknown role in last position changes nothing earlier", my siblingNths({"group", "group", "UI element"}, {true, true, false}) is {1, 2, "?"})
-	my check(results, "inElidedRun: numeric nth past the head in a same-class run", my inElidedRun(true, 8, 20, "static text", "static text", 8))
-	my check(results, "inElidedRun: a ? nth is never elided (elisionLine gets numeric nths only)", not my inElidedRun(true, 8, 20, "static text", "static text", "?"))
-	my check(results, "inElidedRun: the last child is always listed", not my inElidedRun(true, 20, 20, "static text", "static text", 20))
-	my check(results, "inElidedRun: the head is always listed", not my inElidedRun(true, kElideHead, 20, "static text", "static text", kElideHead))
-	my check(results, "inElidedRun: other classes are listed", not my inElidedRun(true, 8, 20, "button", "static text", 1))
-	my check(results, "inElidedRun: nothing is elided when elision is off", not my inElidedRun(false, 8, 20, "static text", "static text", 8))
+	my check(results, "inElidedRun: past the head in a same-class run", my inElidedRun(true, 8, 20, "static text", "static text"))
+	my check(results, "inElidedRun: without a head class nothing is elided", not my inElidedRun(true, 8, 20, "static text", ""))
+	my check(results, "inElidedRun: the last child is always listed", not my inElidedRun(true, 20, 20, "static text", "static text"))
+	my check(results, "inElidedRun: the head is always listed", not my inElidedRun(true, kElideHead, 20, "static text", "static text"))
+	my check(results, "inElidedRun: other classes are listed", not my inElidedRun(true, 8, 20, "button", "static text"))
+	my check(results, "inElidedRun: nothing is elided when elision is off", not my inElidedRun(false, 8, 20, "static text", "static text"))
 	set fakeDesc to my failedDesc("AXGroup", "? [err -1719: Invalid index.]")
 	my check(results, "failedDesc keeps a role read after the failure", (axRole of fakeDesc) is "AXGroup" and (descLine of fakeDesc) is "AXGroup  ? [err -1719: Invalid index.]")
 	set fakeDesc to my failedDesc("", "? [err -1719: Invalid index.]")
 	my check(results, "failedDesc without a role is the bare error tag", (axRole of fakeDesc) is "" and (descLine of fakeDesc) is "? [err -1719: Invalid index.]")
+	my check(results, "elisionLine prints ?…? when a run's class count is not trusted", my elisionLine(54, 216, "static text", "?", "?") is "[UI element 54…216 | static text ?…?]  … 163 more static texts not listed")
+	my check(results, "elisionLine prints ?…? when only one end is ?", my elisionLine(54, 216, "static text", 53, "?") is "[UI element 54…216 | static text ?…?]  … 163 more static texts not listed")
+
+	-- planChildren: the real bookkeeping dumpChildren runs between the batched read and the recursion.
+	set stClass to "static text"
+	repeat with pos from 1 to 4
+		set kidN to item pos of {1, 2, 5, 6}
+		set rowClasses to my repeatList(stClass, kidN)
+		my check(results, "planChildren: AXList with " & kidN & " children lists them all", my planText(rowClasses, my repeatList(true, kidN), "AXList") is my joinWith(my seqLabels(stClass, 1, kidN), " / "))
+	end repeat
+	my check(results, "planChildren: no children, no operations", my planText({}, {}, "AXList") is "")
+	set want to my seqLabels(stClass, 1, 6) & {my elisionLine(7, 12, stClass, 7, 12), "[UI element 13 | static text 13]"}
+	my check(results, "planChildren: 13 static texts → 1…6, one line for 7…12, then 13", my planText(my repeatList(stClass, 13), my repeatList(true, 13), "AXList") is my joinWith(want, " / "))
+	set rowClasses to my repeatList(stClass, 217)
+	set item 100 of rowClasses to "button"
+	set want to my seqLabels(stClass, 1, 6) & {my elisionLine(7, 99, stClass, 7, 99), "[UI element 100 | button 1]", my elisionLine(101, 216, stClass, 100, 215), "[UI element 217 | static text 216]"}
+	my check(results, "planChildren: 217 rows, a button at 100 splits the run, the last row is listed", my planText(rowClasses, my repeatList(true, 217), "AXList") is my joinWith(want, " / "))
+	my check(results, "planChildren: an AXGroup with 24 children is never shortened", my planText(my repeatList(stClass, 24), my repeatList(true, 24), "AXGroup") is my joinWith(my seqLabels(stClass, 1, 24), " / "))
+	my check(results, "planChildren: a window's sheet comes first, labels keep AX index and class count", my planText({"group", "sheet", "group"}, {true, true, true}, "AXWindow") is "[UI element 2 | sheet 1] / [UI element 1 | group 1] / [UI element 3 | group 2]")
+	set rowClasses to my repeatList(stClass, 20)
+	set item 10 of rowClasses to "UI element"
+	set rowKnown to my repeatList(true, 20)
+	set item 10 of rowKnown to false
+	set want to my seqLabels(stClass, 1, 6) & {my elisionLine(7, 9, stClass, 7, 9), "[UI element 10 | UI element ?]", my elisionLine(11, 19, stClass, "?", "?"), "[UI element 20 | static text ?]"}
+	my check(results, "planChildren: an unreadable row 10 of 20 breaks the run by class but not the shortening", my planText(rowClasses, rowKnown, "AXList") is my joinWith(want, " / "))
+
+	-- describeKids/classifyKids: dumpChildren's per-child bookkeeping from a successful batch (no Apple Events).
+	try
+		tell application "System Events" to set fakeProps to {role:"AXGroup", name:"A"}
+		set kidDescs to my describeKids({kids:{"k1", "k2", "k3"}, props:{fakeProps, {}, fakeProps}, ids:{"x", missing value, "z"}, readError:""})
+		set kidInfo to my classifyKids(kidDescs)
+		my check(results, "describeKids builds one description per child from the batch", (count of kidDescs) is 3 and (descLine of item 1 of kidDescs) is "AXGroup  id=\"x\"  title=\"A\"" and (descLine of item 2 of kidDescs) is "?")
+		my check(results, "classifyKids maps roles to classes and flags unknown roles", (kidClasses of kidInfo) is {"group", "UI element", "group"} and (roleKnown of kidInfo) is {true, false, true})
+	on error errMsg number errNum
+		my check(results, "describeKids/classifyKids run without error: " & my errorTag(errNum, errMsg), false)
+	end try
 
 	set fails to 0
 	repeat with ln in results
@@ -477,6 +514,51 @@ on check(results, label, cond)
 		set end of results to "FAIL " & label
 	end if
 end check
+
+-- planChildren's operations rendered the way dumpChildren writes them, joined by " / ". An error comes back as
+-- its errorTag, so a crashing planner fails its check instead of aborting the self-test.
+on planText(kidClasses, roleKnown, parentRole)
+	try
+		set ops to my planChildren(kidClasses, roleKnown, parentRole)
+		set acc to {}
+		repeat with pos from 1 to (count of ops)
+			set op to item pos of ops
+			if (opKind of op) is "elide" then
+				set end of acc to my elisionLine(firstIdx of op, lastIdx of op, cls of op, firstNth of op, lastNth of op)
+			else
+				set end of acc to "[" & my childLabel(op) & "]"
+			end if
+		end repeat
+		return my joinWith(acc, " / ")
+	on error errMsg number errNum
+		set AppleScript's text item delimiters to ""
+		return my errorTag(errNum, errMsg)
+	end try
+end planText
+
+-- "[UI element i | <cls> i]" for i in a..b: the labels of a same-class run starting at child 1.
+on seqLabels(cls, a, b)
+	set acc to {}
+	repeat with i from a to b
+		set end of acc to "[UI element " & i & " | " & cls & " " & i & "]"
+	end repeat
+	return acc
+end seqLabels
+
+on repeatList(v, n)
+	set acc to {}
+	repeat n times
+		set end of acc to v
+	end repeat
+	return acc
+end repeatList
+
+on joinWith(lst, sep)
+	set AppleScript's text item delimiters to sep
+	set s to lst as text
+	set AppleScript's text item delimiters to ""
+	return s
+end joinWith
 
 ----------------------------------------------------------------------
 -- PURE HELPERS
@@ -541,8 +623,11 @@ on shouldElide(axRole, kidCount)
 end shouldElide
 
 -- One line standing for children firstIdx..lastIdx, all of class `cls`, so their addresses stay composable.
+-- The `UI element a…b` range is always exact; the class range reads `?…?` when either end's count is untrusted.
 on elisionLine(firstIdx, lastIdx, cls, firstNth, lastNth)
-	return "[UI element " & firstIdx & "…" & lastIdx & " | " & cls & " " & firstNth & "…" & lastNth & "]  … " & (lastIdx - firstIdx + 1) & " more " & cls & "s not listed"
+	set nthRange to (firstNth as text) & "…" & (lastNth as text)
+	if firstNth is "?" or lastNth is "?" then set nthRange to "?…?"
+	return "[UI element " & firstIdx & "…" & lastIdx & " | " & cls & " " & nthRange & "]  … " & (lastIdx - firstIdx + 1) & " more " & cls & "s not listed"
 end elisionLine
 
 -- item idx of lst, or fallback when lst is missing value, too short, or the item is missing value.
@@ -577,12 +662,66 @@ on siblingNths(kidClasses, roleKnown)
 end siblingNths
 
 -- True when child idx (of n) is folded into an elision line: past the head, not the last child, same class as
--- child kElideHead, and a trusted (numeric) class-nth — elisionLine's range must be composable.
-on inElidedRun(elide, idx, n, cls, headCls, nth)
+-- child kElideHead. An untrusted ("?") class-nth may join the run: the `UI element a…b` range stays exact.
+on inElidedRun(elide, idx, n, cls, headCls)
 	if not elide then return false
-	if nth is "?" then return false
 	return idx > kElideHead and idx < n and cls is headCls
 end inElidedRun
+
+-- The pure part of dumpChildren (no Apple Events): given each child's class and whether its role was read,
+-- returns what to write, in file order — {opKind:"dump", idx:, cls:, nth:} for a child listed in full,
+-- {opKind:"elide", firstIdx:, lastIdx:, cls:, firstNth:, lastNth:} for one elision line. Sheets come first;
+-- lists/outlines/tables longer than kElideAbove keep children 1…kElideHead, the last child and any child of
+-- a class other than child kElideHead's.
+on planChildren(kidClasses, roleKnown, parentRole)
+	set n to count of kidClasses
+	set nths to my siblingNths(kidClasses, roleKnown)
+	set visitOrder to {}
+	repeat with idx from 1 to n
+		if (item idx of kidClasses) is "sheet" then set end of visitOrder to idx
+	end repeat
+	set hasSheets to (count of visitOrder) > 0
+	repeat with idx from 1 to n
+		if (item idx of kidClasses) is not "sheet" then set end of visitOrder to idx
+	end repeat
+	-- Lists/outlines/tables never contain sheets, so visitOrder is the identity whenever elide is true.
+	set elide to (not hasSheets) and my shouldElide(parentRole, n)
+	set headCls to ""
+	if n ≥ kElideHead then set headCls to item kElideHead of kidClasses
+	set ops to {}
+	set runStart to 0
+	repeat with pos from 1 to n
+		set idx to item pos of visitOrder
+		set cls to item idx of kidClasses
+		if my inElidedRun(elide, idx, n, cls, headCls) then
+			if runStart is 0 then set runStart to idx
+		else
+			if runStart > 0 then
+				set end of ops to {opKind:"elide", firstIdx:runStart, lastIdx:idx - 1, cls:headCls, firstNth:item runStart of nths, lastNth:item (idx - 1) of nths}
+				set runStart to 0
+			end if
+			set end of ops to {opKind:"dump", idx:idx, cls:cls, nth:item idx of nths}
+		end if
+	end repeat
+	return ops
+end planChildren
+
+-- Address of a "dump" op relative to its parent, e.g. "UI element 3 | group 2".
+on childLabel(op)
+	return "UI element " & (idx of op) & " | " & (cls of op) & " " & (nth of op)
+end childLabel
+
+-- Per-child class and whether its role was read (an unknown role maps to class "UI element").
+on classifyKids(descs)
+	set kidClasses to {}
+	set roleKnown to {}
+	repeat with idx from 1 to (count of descs)
+		set r to axRole of (item idx of descs)
+		set end of kidClasses to my roleToClass(r)
+		set end of roleKnown to (r is not "" and r is not "?")
+	end repeat
+	return {kidClasses:kidClasses, roleKnown:roleKnown}
+end classifyKids
 
 -- Report entry for an element whose read failed. `knownRole` is "" when not even its role could be read.
 on failedDesc(knownRole, tagText)
@@ -695,70 +834,68 @@ on dumpTree(el, depth, label, axRole, descLine)
 	my dumpChildren(el, depth, axRole)
 end dumpTree
 
--- Children of one parent: batched read, per-class sibling counters, sheets first, long lists shortened.
+-- Children of one parent: batched read, then the pure planChildren (sibling counts, sheets first, long lists
+-- shortened), then the lines and the recursion. Errors cost one line, never the rest of the dump (spec D3).
 on dumpChildren(el, depth, parentRole)
 	set batch to my fetchChildren(el)
 	set kids to kids of batch
 	set n to count of kids
 	if n is 0 then
-		if (readError of batch) is not "" then set end of report to (my indent(depth + 1)) & "(children unavailable: " & (readError of batch) & ")"
+		if (readError of batch) is not "" then
+			set failedReads to failedReads + 1
+			set end of report to (my indent(depth + 1)) & "(children unavailable: " & (readError of batch) & ")"
+		end if
 		return
 	end if
 
-	-- Describe every child up front: from the batch when it succeeded, one by one otherwise.
+	try
+		set descs to my describeKids(batch)
+		set kidInfo to my classifyKids(descs)
+		set ops to my planChildren(kidClasses of kidInfo, roleKnown of kidInfo, parentRole)
+	on error errMsg number errNum
+		set failedReads to failedReads + 1
+		set end of report to (my indent(depth + 1)) & "(children unavailable: " & my errorTag(errNum, errMsg) & ")"
+		return
+	end try
+
+	repeat with pos from 1 to (count of ops)
+		set opIdx to "?"
+		try
+			set op to item pos of ops
+			if (opKind of op) is "elide" then
+				set opIdx to firstIdx of op
+				set end of report to (my indent(depth + 1)) & my elisionLine(firstIdx of op, lastIdx of op, cls of op, firstNth of op, lastNth of op)
+			else
+				set opIdx to idx of op
+				set d to item opIdx of descs
+				my dumpTree(item opIdx of kids, depth + 1, my childLabel(op), axRole of d, descLine of d)
+			end if
+		on error errMsg number errNum
+			set failedReads to failedReads + 1
+			set end of report to (my indent(depth + 1)) & "[UI element " & opIdx & "]  " & my errorTag(errNum, errMsg)
+		end try
+	end repeat
+end dumpChildren
+
+-- One description per child: from the batch when it succeeded (no Apple Events when the ids batch did too),
+-- one by one otherwise.
+on describeKids(batch)
 	set descs to {}
-	repeat with idx from 1 to n
+	repeat with idx from 1 to (count of (kids of batch))
 		if (props of batch) is missing value then
-			set end of descs to my describeOne(item idx of kids)
+			set end of descs to my describeOne(item idx of (kids of batch))
 		else
 			-- The identifier batch fails as a whole (or is nulled on a count mismatch): read ids one by one then.
 			if (ids of batch) is missing value then
-				set aid to my readIdentifier(item idx of kids)
+				set aid to my readIdentifier(item idx of (kids of batch))
 			else
 				set aid to my itemOr(ids of batch, idx, "")
 			end if
 			set end of descs to my describeFromProps(item idx of (props of batch), aid)
 		end if
 	end repeat
-
-	-- Per-class sibling counters so labels match AppleScript addressing ("group 3", "button 2"); "?" after a
-	-- child whose role is unknown.
-	set classes to {}
-	set roleKnown to {}
-	repeat with idx from 1 to n
-		set r to axRole of (item idx of descs)
-		set end of classes to my roleToClass(r)
-		set end of roleKnown to (r is not "" and r is not "?")
-	end repeat
-	set nths to my siblingNths(classes, roleKnown)
-
-	-- Sheets first, then everything else in AX order.
-	set visitOrder to {}
-	repeat with idx from 1 to n
-		if (item idx of classes) is "sheet" then set end of visitOrder to idx
-	end repeat
-	set hasSheets to (count of visitOrder) > 0
-	repeat with idx from 1 to n
-		if (item idx of classes) is not "sheet" then set end of visitOrder to idx
-	end repeat
-
-	-- Elide children kElideHead+1 .. n-1 that share the class of child kElideHead (only in lists/outlines/tables,
-	-- which never contain sheets, so visitOrder is the identity there).
-	set elide to (not hasSheets) and my shouldElide(parentRole, n)
-	set runStart to 0
-	repeat with pos from 1 to n
-		set idx to item pos of visitOrder
-		if my inElidedRun(elide, idx, n, item idx of classes, item kElideHead of classes, item idx of nths) then
-			if runStart is 0 then set runStart to idx
-		else
-			if runStart > 0 then
-				set end of report to (my indent(depth + 1)) & (my elisionLine(runStart, idx - 1, item kElideHead of classes, item runStart of nths, item (idx - 1) of nths))
-				set runStart to 0
-			end if
-			my dumpTree(item idx of kids, depth + 1, "UI element " & idx & " | " & (item idx of classes) & " " & (item idx of nths), axRole of (item idx of descs), descLine of (item idx of descs))
-		end if
-	end repeat
-end dumpChildren
+	return descs
+end describeKids
 
 -- Three Apple Events per parent instead of four per child: children, their `properties`, their AXIdentifiers.
 -- `props`/`ids` are missing value when a batch failed or its count does not match the children (tree changed

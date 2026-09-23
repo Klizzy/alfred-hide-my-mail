@@ -33,7 +33,7 @@ property kTilePrefix : "six-pack-card-"
 -- are listed. en/de: from live dumps (Sequoia 15.8, Tahoe 26.6). fr/es: Apple's marketing names, unverified.
 property kHideMyEmailTileIds : {"six-pack-card-Hide My Email", "six-pack-card-E‑Mail-Adresse verbergen", "six-pack-card-E-Mail-Adresse verbergen", "six-pack-card-Masquer mon adresse e‑mail", "six-pack-card-Masquer mon adresse e-mail", "six-pack-card-Ocultar mi correo electrónico"}
 property kSettleTicks : 10 -- the card count must be unchanged for 10 x 0.1 s before guessing by sheet shape
-property kProbeNodes : 12 -- containers the sheet-text probe may visit (3 batched reads each)
+property kProbeNodes : 12 -- containers the sheet-text probe may visit (4 batched reads each)
 property navLog : {}
 
 -- One line per navigation step. The main script hands the log to the failure diagnosis, diagnose prints it.
@@ -274,8 +274,9 @@ on sheetFirstText()
 	return ""
 end sheetFirstText
 
--- Breadth-first over at most kProbeNodes containers, three batched reads each (role, name, value of every child),
--- 2 s per read. Returns the first non-empty name or value of an AXStaticText/AXHeading. Best effort: never throws.
+-- Breadth-first over at most kProbeNodes containers, four batched reads each (the children, then role, name and
+-- value of every child), 2 s per read. Returns the first non-empty name or value of an AXStaticText/AXHeading.
+-- Best effort: never throws.
 -- Replaces the unbounded whole-subtree read, which stalled 5 s and returned "" on the real Hide My Email sheet.
 on firstTextIn(axContainer)
 	set queue to {axContainer}
