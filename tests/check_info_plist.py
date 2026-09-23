@@ -57,21 +57,36 @@ for required in ("{var:trigger_keyword}", "hide-diagnose"):
     if required not in keywords:
         errors.append(f"keyword {required} missing")
 
-# Every keyword → Run Script → Notification showing {query}.
+# Every keyword → exactly one Run Script → Notification showing {query}.
+# A keyword may fan out to other objects too (hide-diagnose also fires a static progress notification).
 for kw, uid in keywords.items():
-    step1 = [c["destinationuid"] for c in connections.get(uid, [])]
-    if not step1 or objects[step1[0]]["type"] != "alfred.workflow.action.script":
-        errors.append(f"keyword {kw}: not wired to a Run Script")
+    targets = [objects[c["destinationuid"]] for c in connections.get(uid, []) if c["destinationuid"] in objects]
+    scripts = [o for o in targets if o["type"] == "alfred.workflow.action.script"]
+    if len(scripts) != 1:
+        errors.append(f"keyword {kw}: must be wired to exactly one Run Script (found {len(scripts)})")
         continue
-    step2 = [c["destinationuid"] for c in connections.get(step1[0], [])]
+    step2 = [c["destinationuid"] for c in connections.get(scripts[0]["uid"], [])]
     if not step2 or objects[step2[0]]["type"] != "alfred.workflow.output.notification":
         errors.append(f"keyword {kw}: Run Script not wired to a notification")
         continue
     if objects[step2[0]]["config"].get("text") != "{query}":
         errors.append(f"keyword {kw}: notification text must be {{query}} so failures are visible")
 
+# hide-diagnose dumps for seconds: the keyword itself must fire a static "collecting…" notification.
+diag_targets = [objects[c["destinationuid"]] for c in connections.get(keywords.get("hide-diagnose", ""), []) if c["destinationuid"] in objects]
+progress = [o for o in diag_targets if o["type"] == "alfred.workflow.output.notification"]
+if len(progress) != 1:
+    errors.append(f"keyword hide-diagnose: needs exactly one direct progress notification (found {len(progress)})")
+else:
+    text = progress[0]["config"].get("text", "")
+    if not text or "{query}" in text or progress[0]["config"].get("onlyshowifquerypopulated"):
+        errors.append("keyword hide-diagnose: progress notification must have static text and show without a query")
+
 if plist.get("version") != "2.0":
     errors.append(f"version is {plist.get('version')!r}, expected '2.0'")
+
+if plist.get("category") != "Productivity":
+    errors.append(f"category is {plist.get('category')!r}, expected 'Productivity' (Alfred sidebar category of the maintainer's install)")
 
 if errors:
     print("\n".join("FAIL: " + e for e in errors))
