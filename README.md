@@ -36,8 +36,8 @@ The workflow will open the MacOS System Settings, navigate to the appropriate se
 
 | macOS | Status |
 |-------|--------|
-| Sequoia 15.x | ✅ Tested by the maintainer |
-| Tahoe 26.x | ✅ Based on community-verified fixes — please report issues with `hide-diagnose` |
+| Sequoia 15.x | ✅ |
+| Tahoe 26.x | ✅ |
 | Sonoma 14.x | ❌ Not supported by v2.0 — use [release v.1.1](https://github.com/Klizzy/alfred-hide-my-mail/releases/tag/v.1.1) or [release v.1.0](https://github.com/Klizzy/alfred-hide-my-mail/releases/tag/v.1.0) (v.1.2 switched the element indices to Sequoia) |
 
 The workflow detects your macOS version and uses the matching navigation path. Button labels are recognised in English, German, French and Spanish.
@@ -51,9 +51,9 @@ You can change the keyword to trigger the workflow by opening the Alfred Prefere
 
 The notification always tells you what really happened: `Created <address> — copied to your clipboard`, or `Failed: <step> …`.
 
-**When it fails, a diagnosis file is written automatically** to `~/Desktop/hide-my-mail-diagnosis.txt` with the System Settings layout at the moment of failure. Attach it to a [GitHub issue](https://github.com/Klizzy/alfred-hide-my-mail/issues). It contains UI structure and your macOS/locale/Alfred versions, no addresses or personal data beyond what is visible in that System Settings pane — check it before posting.
+**When it fails, a diagnosis file is written automatically** to `~/Desktop/hide-my-mail-diagnosis.txt` with the System Settings layout at the moment of failure. Attach it to a [GitHub issue](https://github.com/Klizzy/alfred-hide-my-mail/issues). It contains the UI structure and your macOS/locale/Alfred versions. Long lists such as your saved address labels are shortened to a handful of entries, but the address shown in an open sheet is included — check the file before posting.
 
-You can also produce it on demand: run `hide-diagnose` in Alfred (no argument). That opens System Settings, navigates to Hide My Email without creating anything, and writes the same file.
+You can also produce it on demand: run `hide-diagnose` in Alfred (no argument). A "Collecting the diagnosis…" notification appears immediately; System Settings opens, navigates to Hide My Email without creating anything, and closes again. The "Diagnosis saved" notification follows a few seconds later.
 
 ## Why?
 

@@ -33,6 +33,7 @@ property kTilePrefix : "six-pack-card-"
 -- are listed. en/de: from live dumps (Sequoia 15.8, Tahoe 26.6). fr/es: Apple's marketing names, unverified.
 property kHideMyEmailTileIds : {"six-pack-card-Hide My Email", "six-pack-card-E‑Mail-Adresse verbergen", "six-pack-card-E-Mail-Adresse verbergen", "six-pack-card-Masquer mon adresse e‑mail", "six-pack-card-Masquer mon adresse e-mail", "six-pack-card-Ocultar mi correo electrónico"}
 property kSettleTicks : 10 -- the card count must be unchanged for 10 x 0.1 s before guessing by sheet shape
+property kProbeNodes : 12 -- containers the sheet-text probe may visit (3 batched reads each)
 property navLog : {}
 
 -- One line per navigation step. The main script hands the log to the failure diagnosis, diagnose prints it.
@@ -262,7 +263,7 @@ on anySheetOpen()
 	return false
 end anySheetOpen
 
--- First non-empty static text of sheet 1 — tells the reader which sheet opened. "" if none.
+-- First non-empty text of sheet 1 — tells the reader which sheet opened. "" if none.
 -- Called at the process level on purpose (a partial reference inside a `tell <element>` would chain onto it).
 on sheetFirstText()
 	try
@@ -273,23 +274,60 @@ on sheetFirstText()
 	return ""
 end sheetFirstText
 
+-- Breadth-first over at most kProbeNodes containers, three batched reads each (role, name, value of every child),
+-- 2 s per read. Returns the first non-empty name or value of an AXStaticText/AXHeading. Best effort: never throws.
+-- Replaces `entire contents`, which stalled 5 s and returned "" on the real Hide My Email sheet.
 on firstTextIn(axContainer)
+	set queue to {axContainer}
+	set visited to 0
 	try
-		with timeout of 5 seconds
-			tell application "System Events"
-				repeat with el in (entire contents of axContainer)
-					try
-						if (role of el) is "AXStaticText" then
-							set v to value of el
-							if v is not missing value and (v as text) is not "" then return v as text
-						end if
-					end try
+		repeat while (count of queue) > 0 and visited < kProbeNodes
+			set node to item 1 of queue
+			set queue to rest of queue
+			set visited to visited + 1
+			set kids to {}
+			set rs to {}
+			set ns to {}
+			set vs to {}
+			try
+				with timeout of 2 seconds
+					tell application "System Events"
+						set kids to every UI element of node
+						set rs to role of every UI element of node
+						set ns to name of every UI element of node
+						set vs to value of every UI element of node
+					end tell
+				end timeout
+			end try
+			set n to count of kids
+			if n > 0 and (count of rs) is n and (count of ns) is n and (count of vs) is n then
+				repeat with i from 1 to n
+					set t to ""
+					if (item i of rs) is "AXStaticText" then
+						set t to my probeText(item i of vs)
+						if t is "" then set t to my probeText(item i of ns)
+					else if (item i of rs) is "AXHeading" then
+						set t to my probeText(item i of ns) -- a heading's value is its level ("1"), not text
+					end if
+					if t is not "" then return t
 				end repeat
-			end tell
-		end timeout
+			end if
+			repeat with k in kids
+				set end of queue to contents of k
+			end repeat
+		end repeat
 	end try
 	return ""
 end firstTextIn
+
+-- missing value → ""; anything else as text; never throws.
+on probeText(v)
+	try
+		if v is missing value then return ""
+		return v as text
+	end try
+	return ""
+end probeText
 
 -- Escape closes every iCloud+ sheet. True once no sheet is open.
 on dismissSheet()
