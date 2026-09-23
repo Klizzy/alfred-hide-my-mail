@@ -111,26 +111,33 @@ end openICloudPane
 on pressHideMyEmailTile(contentGroupIndex, useAXPress)
 	-- Pass 1. On a cold start the grid renders twice; a press on the first render can be lost or throw (-10000).
 	-- Nothing after 3 s → re-read the grid and press the current card again (≤ kMaxPresses). A sheet that is
-	-- up but not recognised yet is waited for, never pressed through.
+	-- up but not recognised yet is waited for, never pressed through; so is a busy app (sheetOpening).
 	set presses to 0
 	set lastAid to ""
 	repeat 30 times
 		repeat with b in my hideMyEmailCandidates(contentGroupIndex)
 			set aid to my tileId(b)
 			if aid is in kHideMyEmailTileIds then
-				set presses to presses + 1
-				set lastAid to aid
-				my navNote("pressing " & aid & " (attempt " & presses & ")")
-				try
-					my pressTile(b, useAXPress)
-				on error e number n
-					my navNote("pressing " & aid & " failed (" & n & ": " & e & ")")
-				end try
-				set sheetUp to my waitForHideMyEmailSheet(kPressWaitTicks)
-				set nextMove to my afterPress(sheetUp, my anySheetOpen(), presses)
-				if nextMove is "wait" then
+				if presses > 0 and my sheetOpening() then
+					-- The previous press was slow, not lost: its sheet came up while the grid was re-read.
+					my navNote("sheet coming up before press " & (presses + 1) & ": waiting instead of pressing " & aid)
 					set sheetUp to my waitForHideMyEmailSheet(kMaxTicks - kPressWaitTicks)
 					set nextMove to my afterPress(sheetUp, false, kMaxPresses)
+				else
+					set presses to presses + 1
+					set lastAid to aid
+					my navNote("pressing " & aid & " (attempt " & presses & ")")
+					try
+						my pressTile(b, useAXPress)
+					on error e number n
+						my navNote("pressing " & aid & " failed (" & n & ": " & e & ")")
+					end try
+					set sheetUp to my waitForHideMyEmailSheet(kPressWaitTicks)
+					set nextMove to my afterPress(sheetUp, my sheetOpening(), presses)
+					if nextMove is "wait" then
+						set sheetUp to my waitForHideMyEmailSheet(kMaxTicks - kPressWaitTicks)
+						set nextMove to my afterPress(sheetUp, false, kMaxPresses)
+					end if
 				end if
 				if nextMove is "done" then
 					my navNote("Hide My Email sheet open")
@@ -291,6 +298,22 @@ on anySheetOpen()
 	end try
 	return false
 end anySheetOpen
+
+-- Pass 1 only: anySheetOpen, except that a probe that runs out of its 2 s (-1712, System Settings busy right
+-- after a press) counts as a sheet on its way — a busy app is waited for, never pressed again.
+-- Other errors (process not there, -1728) stay false.
+on sheetOpening()
+	try
+		with timeout of 2 seconds
+			tell application "System Events" to tell application process "System Settings"
+				return (exists sheet 1 of window 1)
+			end tell
+		end timeout
+	on error number errNum
+		if errNum is -1712 then return true
+	end try
+	return false
+end sheetOpening
 
 -- First non-empty text of sheet 1 — tells the reader which sheet opened. "" if none.
 -- Called at the process level on purpose (a partial reference inside a `tell <element>` would chain onto it).
@@ -660,6 +683,9 @@ on runSelfTest()
 	set t0 to current date
 	set sheetSeen to my waitForHideMyEmailSheet(3)
 	my check(report, "waitForHideMyEmailSheet returns a boolean within ~1 s", class of sheetSeen is boolean and ((current date) - t0) ≤ 2)
+	set t0 to current date
+	set sheetSeen to my sheetOpening()
+	my check(report, "sheetOpening returns a boolean within its 2 s bound", class of sheetSeen is boolean and ((current date) - t0) ≤ 3)
 	my check(report, "firstTextIn is best effort: returns \"\" on a non-element", my firstTextIn(missing value) is "")
 	my check(report, "hideMyEmailCandidates returns a list even without System Settings", class of (my hideMyEmailCandidates(2)) is list)
 	my check(report, "looksLikeAddress accepts x.y@icloud.com", my looksLikeAddress("x.y@icloud.com"))
