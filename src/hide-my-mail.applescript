@@ -565,32 +565,43 @@ on runTahoe(labelText)
 			-- 1. Hide My Email card by AXIdentifier (shared; AXPress because Tahoe tiles ignore `click`, PR #6).
 			my pressHideMyEmailTile(3, true)
 
-			-- 2. Create New Address (named; fallback UI element 5).
+			-- 2. Create New Address: by name; after 3 s the main group's first button (untranslated locales).
 			set createBtn to missing value
+			set createHow to "named"
 			repeat with i from 1 to kMaxTicks
-				try
-					tell group 1 of group 1 of group 1 of UI element 1 of scroll area 1 of sheet 1 of window 1
-						set createBtn to my pickNamed(buttons, kCreateNames)
-						if createBtn is missing value and i ≥ 30 and (exists UI element 5) then set createBtn to UI element 5
-					end tell
-				end try
+				set createBtn to my tahoeNamedCreateButton()
+				if createBtn is missing value and i ≥ 30 then
+					set createBtn to my tahoeFirstButton()
+					set createHow to "button 1"
+				end if
 				if createBtn is not missing value then exit repeat
 				my waitTick(i, "Create New Address button")
 			end repeat
-			perform action "AXPress" of createBtn
 
-			-- 3. On 26.6.x the create dialog may be sheet 2 (PR #7). Find the sheet that owns the label field.
+			-- 3. Press it and find the sheet with the label field (on 26.6.x the create dialog may be sheet 2, PR #7).
+			-- A press with no effect after 3 s is repeated (≤ kMaxPresses), but only while the *named* Create
+			-- button is still there and no second sheet is opening — never into the create form.
 			set createSheet to 0
-			repeat with i from 1 to kMaxTicks
-				repeat with s from 1 to (count of sheets of window 1)
-					if (exists text field 1 of group 4 of group 1 of group 1 of UI element 1 of scroll area 1 of sheet s of window 1) then
-						set createSheet to s
-						exit repeat
-					end if
-				end repeat
+			set presses to 0
+			repeat
+				set presses to presses + 1
+				my navNote("pressing Create New Address (" & createHow & ", attempt " & presses & ")")
+				try
+					perform action "AXPress" of createBtn
+				on error e number n
+					my navNote("pressing Create New Address failed (" & n & ": " & e & ")")
+				end try
+				set createSheet to my waitForLabelField(kPressWaitTicks)
 				if createSheet > 0 then exit repeat
-				my waitTick(i, "label field")
+				set againBtn to my tahoeNamedCreateButton()
+				set nextMove to my afterPress(false, (againBtn is missing value) or ((my sheetCount()) > 1), presses)
+				if nextMove is "wait" then set createSheet to my waitForLabelField(kMaxTicks - kPressWaitTicks)
+				if nextMove is not "press again" then exit repeat
+				set createBtn to againBtn
+				set createHow to "named"
 			end repeat
+			if createSheet is 0 then error "Timeout waiting for label field"
+			my navNote("label field in sheet " & createSheet)
 
 			tell UI element 1 of scroll area 1 of sheet createSheet of window 1
 				-- 4. Label.
@@ -683,6 +694,11 @@ on runSelfTest()
 	set t0 to current date
 	set sheetSeen to my waitForHideMyEmailSheet(3)
 	my check(report, "waitForHideMyEmailSheet returns a boolean within ~1 s", class of sheetSeen is boolean and ((current date) - t0) ≤ 2)
+	my check(report, "labelFieldSheet never throws and returns an integer", class of (my labelFieldSheet()) is integer)
+	my check(report, "sheetCount never throws and returns an integer", class of (my sheetCount()) is integer)
+	set probeBtn to my tahoeNamedCreateButton()
+	set probeBtn to my tahoeFirstButton()
+	my check(report, "tahoeNamedCreateButton / tahoeFirstButton never throw", true)
 	set t0 to current date
 	set sheetSeen to my sheetOpening()
 	my check(report, "sheetOpening returns a boolean within its 2 s bound", class of sheetSeen is boolean and ((current date) - t0) ≤ 3)
@@ -793,6 +809,73 @@ on pickNamed(candidates, nameList)
 	end tell
 	return missing value
 end pickNamed
+
+-- The Tahoe sheet's main group (AXLandmarkMain): group 1 of group 1 of group 1 of UI element 1 of scroll area 1.
+-- Each lookup is one bounded read and never throws.
+on tahoeNamedCreateButton()
+	try
+		with timeout of 2 seconds
+			tell application "System Events" to tell application process "System Settings"
+				tell group 1 of group 1 of group 1 of UI element 1 of scroll area 1 of sheet 1 of window 1
+					return my pickNamed(buttons, kCreateNames)
+				end tell
+			end tell
+		end timeout
+	end try
+	return missing value
+end tahoeNamedCreateButton
+
+-- Positional fallback for untranslated locales: the first button of the main group. On 26.7 that is Create
+-- ("UI element 4 | button 1"); UI element 5 is group 3 (the options pop-up), which v1.2's index pointed at.
+on tahoeFirstButton()
+	try
+		with timeout of 2 seconds
+			tell application "System Events" to tell application process "System Settings"
+				tell group 1 of group 1 of group 1 of UI element 1 of scroll area 1 of sheet 1 of window 1
+					if (exists button 1) then return button 1
+				end tell
+			end tell
+		end timeout
+	end try
+	return missing value
+end tahoeFirstButton
+
+-- Index of the sheet that holds the label field (on 26.6.x the create dialog can be sheet 2, PR #7), 0 if none.
+on labelFieldSheet()
+	try
+		with timeout of 2 seconds
+			tell application "System Events" to tell application process "System Settings"
+				repeat with s from 1 to (count of sheets of window 1)
+					if (exists text field 1 of group 4 of group 1 of group 1 of UI element 1 of scroll area 1 of sheet s of window 1) then return s
+				end repeat
+			end tell
+		end timeout
+	end try
+	return 0
+end labelFieldSheet
+
+-- Polls labelFieldSheet for up to maxTicks x 0.1 s (wall clock too). 0 on timeout.
+on waitForLabelField(maxTicks)
+	set t0 to current date
+	repeat maxTicks times
+		set s to my labelFieldSheet()
+		if s > 0 then return s
+		if ((current date) - t0) > (maxTicks / 10) then return 0
+		delay 0.1
+	end repeat
+	return 0
+end waitForLabelField
+
+on sheetCount()
+	try
+		with timeout of 2 seconds
+			tell application "System Events" to tell application process "System Settings"
+				return count of sheets of window 1
+			end tell
+		end timeout
+	end try
+	return 0
+end sheetCount
 
 -- Best effort: first static text under `axContainer` whose value looks like an address. "" if none.
 -- The parameter must NOT be named `container`: that is System Events terminology and would shadow the
