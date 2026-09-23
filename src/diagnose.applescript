@@ -407,6 +407,19 @@ on runSelfTest()
 	my check(results, "describeFromProps reads the record without Apple Events", (axRole of fakeDesc) is "AXButton" and (descLine of fakeDesc) is "AXButton/AXCloseButton  id=\"go back\"  title=\"OK\"  desc=\"Taste\"  disabled")
 	set fakeDesc to my describeFromProps({}, missing value)
 	my check(results, "describeFromProps on an empty record yields ? with no id", (axRole of fakeDesc) is "?" and (descLine of fakeDesc) is "?")
+	my check(results, "siblingNths counts per class", my siblingNths({"group", "button", "group", "static text", "group"}, {true, true, true, true, true}) is {1, 1, 2, 1, 3})
+	my check(results, "siblingNths: an unknown role in the middle turns it and every later sibling into ?", my siblingNths({"group", "UI element", "group", "button"}, {true, false, true, true}) is {1, "?", "?", "?"})
+	my check(results, "siblingNths: an unknown role in last position changes nothing earlier", my siblingNths({"group", "group", "UI element"}, {true, true, false}) is {1, 2, "?"})
+	my check(results, "inElidedRun: numeric nth past the head in a same-class run", my inElidedRun(true, 8, 20, "static text", "static text", 8))
+	my check(results, "inElidedRun: a ? nth is never elided (elisionLine gets numeric nths only)", not my inElidedRun(true, 8, 20, "static text", "static text", "?"))
+	my check(results, "inElidedRun: the last child is always listed", not my inElidedRun(true, 20, 20, "static text", "static text", 20))
+	my check(results, "inElidedRun: the head is always listed", not my inElidedRun(true, kElideHead, 20, "static text", "static text", kElideHead))
+	my check(results, "inElidedRun: other classes are listed", not my inElidedRun(true, 8, 20, "button", "static text", 1))
+	my check(results, "inElidedRun: nothing is elided when elision is off", not my inElidedRun(false, 8, 20, "static text", "static text", 8))
+	set fakeDesc to my failedDesc("AXGroup", "? [err -1719: Invalid index.]")
+	my check(results, "failedDesc keeps a role read after the failure", (axRole of fakeDesc) is "AXGroup" and (descLine of fakeDesc) is "AXGroup  ? [err -1719: Invalid index.]")
+	set fakeDesc to my failedDesc("", "? [err -1719: Invalid index.]")
+	my check(results, "failedDesc without a role is the bare error tag", (axRole of fakeDesc) is "" and (descLine of fakeDesc) is "? [err -1719: Invalid index.]")
 
 	set fails to 0
 	repeat with ln in results
@@ -505,6 +518,40 @@ on itemOr(lst, idx, fallback)
 	return fallback
 end itemOr
 
+-- Class-nth of every child ("group 3" → 3). A child whose role could not be read may belong to any class, so
+-- from that child on no count can be trusted: it and every later sibling get "?" ("UI element N" stays exact).
+on siblingNths(kidClasses, roleKnown)
+	set nthList to {}
+	set broken to false
+	repeat with idx from 1 to (count of kidClasses)
+		if not (item idx of roleKnown) then set broken to true
+		if broken then
+			set end of nthList to "?"
+		else
+			set nth to 0
+			repeat with j from 1 to idx
+				if (item j of kidClasses) is (item idx of kidClasses) then set nth to nth + 1
+			end repeat
+			set end of nthList to nth
+		end if
+	end repeat
+	return nthList
+end siblingNths
+
+-- True when child idx (of n) is folded into an elision line: past the head, not the last child, same class as
+-- child kElideHead, and a trusted (numeric) class-nth — elisionLine's range must be composable.
+on inElidedRun(elide, idx, n, cls, headCls, nth)
+	if not elide then return false
+	if nth is "?" then return false
+	return idx > kElideHead and idx < n and cls is headCls
+end inElidedRun
+
+-- Report entry for an element whose read failed. `knownRole` is "" when not even its role could be read.
+on failedDesc(knownRole, tagText)
+	if knownRole is "" then return {axRole:"", descLine:tagText}
+	return {axRole:knownRole, descLine:knownRole & "  " & tagText}
+end failedDesc
+
 on shellOr(cmd, fallback)
 	try
 		return do shell script cmd
@@ -590,7 +637,7 @@ on dumpSystemSettings()
 		set winCount to count of windows
 		set end of report to "--- accessibility tree (" & winCount & " window(s); depth ≤ " & kMaxDepth & ", ≤ " & kMaxElements & " elements) ---"
 		set end of report to "Each line: <indent>[UI element N | <class> M]  role  id=…  title=…  desc=…  value=…   — compose paths bottom-up, e.g. 'group 3 of scroll area 1 of … of window 1'."
-		set end of report to "Sheets are listed before the rest of their window. Lists, outlines and tables with more than " & kElideAbove & " children show the first " & kElideHead & " and the last one; a '…' line stands for the rest. '? [err N: …]' = System Events could not read that element."
+		set end of report to "Sheets are listed before the rest of their window. Lists, outlines and tables with more than " & kElideAbove & " children show the first " & kElideHead & " and the last one; a '…' line stands for the rest. '? [err N: …]' = System Events could not read that element (its role in front when that could still be read); after an element of unknown role the sibling counts read '?'."
 		repeat with w from 1 to winCount
 			set d to my describeOne(window w)
 			my dumpTree(window w, 0, "window " & w, axRole of d, descLine of d)
@@ -626,23 +673,26 @@ on dumpChildren(el, depth, parentRole)
 		if (props of batch) is missing value then
 			set end of descs to my describeOne(item idx of kids)
 		else
-			set end of descs to my describeFromProps(item idx of (props of batch), my itemOr(ids of batch, idx, ""))
+			-- The identifier batch fails as a whole (or is nulled on a count mismatch): read ids one by one then.
+			if (ids of batch) is missing value then
+				set aid to my readIdentifier(item idx of kids)
+			else
+				set aid to my itemOr(ids of batch, idx, "")
+			end if
+			set end of descs to my describeFromProps(item idx of (props of batch), aid)
 		end if
 	end repeat
 
-	-- Per-class sibling counters so labels match AppleScript addressing ("group 3", "button 2").
+	-- Per-class sibling counters so labels match AppleScript addressing ("group 3", "button 2"); "?" after a
+	-- child whose role is unknown.
 	set classes to {}
+	set roleKnown to {}
 	repeat with idx from 1 to n
-		set end of classes to my roleToClass(axRole of (item idx of descs))
+		set r to axRole of (item idx of descs)
+		set end of classes to my roleToClass(r)
+		set end of roleKnown to (r is not "" and r is not "?")
 	end repeat
-	set nths to {}
-	repeat with idx from 1 to n
-		set nth to 0
-		repeat with j from 1 to idx
-			if (item j of classes) is (item idx of classes) then set nth to nth + 1
-		end repeat
-		set end of nths to nth
-	end repeat
+	set nths to my siblingNths(classes, roleKnown)
 
 	-- Sheets first, then everything else in AX order.
 	set visitOrder to {}
@@ -660,7 +710,7 @@ on dumpChildren(el, depth, parentRole)
 	set runStart to 0
 	repeat with pos from 1 to n
 		set idx to item pos of visitOrder
-		if elide and idx > kElideHead and idx < n and (item idx of classes) is (item kElideHead of classes) then
+		if my inElidedRun(elide, idx, n, item idx of classes, item kElideHead of classes, item idx of nths) then
 			if runStart is 0 then set runStart to idx
 		else
 			if runStart > 0 then
@@ -720,7 +770,8 @@ on describeOne(el)
 		on error errMsg number errNum
 			if attempt is 2 or retriesLeft ≤ 0 then
 				set failedReads to failedReads + 1
-				return {axRole:"", descLine:my errorTag(errNum, errMsg)}
+				-- Keep the class if at all possible: without it every later sibling's class-nth is unknown.
+				return my failedDesc(my readRole(el), my errorTag(errNum, errMsg))
 			end if
 			set retriesLeft to retriesLeft - 1
 			delay 0.3
@@ -728,6 +779,28 @@ on describeOne(el)
 	end repeat
 	return {axRole:"", descLine:"?"}
 end describeOne
+
+-- Single attempts, no retry, not counted against retriesLeft. "" / missing value when unreadable.
+on readRole(el)
+	try
+		with timeout of 2 seconds
+			tell application "System Events" to set r to role of el
+		end timeout
+		if r is missing value then return ""
+		return r as text
+	end try
+	return ""
+end readRole
+
+on readIdentifier(el)
+	try
+		with timeout of 2 seconds
+			tell application "System Events" to set aid to value of attribute "AXIdentifier" of el
+		end timeout
+		return aid
+	end try
+	return missing value
+end readIdentifier
 
 -- Builds the report line from a `properties` record. No Apple Events: the tell block only supplies terminology.
 on describeFromProps(p, aid)
