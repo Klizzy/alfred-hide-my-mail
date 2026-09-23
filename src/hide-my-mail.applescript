@@ -744,9 +744,10 @@ end sheetOpen
 ----------------------------------------------------------------------
 
 -- LaunchServices can report a dying instance as gone while its process still answers System Events; ask both.
+-- pgrep -U: only this user's process counts — another logged-in user's instance is out of killall's reach.
 on settingsGone()
 	if application "System Settings" is running then return false
-	return (do shell script "pgrep -x 'System Settings' >/dev/null && echo alive || echo gone") is "gone"
+	return (do shell script "pgrep -x -U \"$(id -u)\" 'System Settings' >/dev/null && echo alive || echo gone") is "gone"
 end settingsGone
 
 -- Polls settingsGone every 0.1 s for up to `ticks` ticks. Returns at once when System Settings is not running.
