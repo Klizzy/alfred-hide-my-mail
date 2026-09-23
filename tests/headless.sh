@@ -33,23 +33,17 @@ done
 rm -rf "$tmpdir"
 trap - EXIT
 
-# Shared navigation block: edited in hide-my-mail.applescript, copied by tests/sync-shared-block.sh.
-extract_shared() { awk 'index($0,"-- BEGIN SHARED NAVIGATION")==1{p=1} p{print} index($0,"-- END SHARED NAVIGATION")==1{p=0}' "$1"; }
-[ -n "$(extract_shared src/hide-my-mail.applescript)" ] || fail "hide-my-mail.applescript: shared navigation block markers missing"
-[ -n "$(extract_shared src/diagnose.applescript)" ] || fail "diagnose.applescript: shared navigation block markers missing"
-diff <(extract_shared src/hide-my-mail.applescript) <(extract_shared src/diagnose.applescript) >/dev/null \
-  || fail "shared navigation block differs between the scripts — run: bash tests/sync-shared-block.sh"
-ok "shared navigation block identical in both scripts"
-
 # Apple's German card id contains U+2011 NON-BREAKING HYPHEN. An editor that normalises it breaks the match silently.
-for f in src/hide-my-mail.applescript src/diagnose.applescript; do
-  grep -q $'six-pack-card-E\xe2\x80\x91Mail-Adresse verbergen' "$f" || fail "$f: German Hide My Email card id lost its U+2011 hyphen"
-done
+grep -q $'six-pack-card-E\xe2\x80\x91Mail-Adresse verbergen' src/hide-my-mail.applescript || fail "hide-my-mail.applescript: German Hide My Email card id lost its U+2011 hyphen"
 ok "German Hide My Email card id keeps U+2011"
+
+# hide-diagnose was removed: it drove System Settings in parallel with hide (Alfred serialises per Run Script only).
+if grep -n 'hide-diagnose' README.md info.plist src/*.applescript; then fail "hide-diagnose is still mentioned"; fi
+ok "no hide-diagnose leftovers"
 
 # The tile index drifted twice (2 → 5 → 6). Cards are selected by AXIdentifier; no bare positional click may return.
 for f in src/hide-my-mail.applescript src/diagnose.applescript; do
-  if grep -nE 'click UI element [0-9]+$' "$f"; then fail "$f: positional grid click found — use the shared pressHideMyEmailTile"; fi
+  if grep -nE 'click UI element [0-9]+$' "$f"; then fail "$f: positional grid click found — use pressHideMyEmailTile"; fi
 done
 ok "no positional grid clicks"
 

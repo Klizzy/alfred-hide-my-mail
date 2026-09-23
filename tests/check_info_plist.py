@@ -53,12 +53,12 @@ keywords = {}
 for uid, obj in objects.items():
     if obj["type"] == "alfred.workflow.input.keyword":
         keywords[obj["config"]["keyword"]] = uid
-for required in ("{var:trigger_keyword}", "hide-diagnose"):
-    if required not in keywords:
-        errors.append(f"keyword {required} missing")
+# One keyword only: a second Run Script object is a second GUI driver that Alfred does not serialise against
+# `hide` (Running Instances "Sequentially" is per object) — hide-diagnose killed System Settings under hide.
+if list(keywords) != ["{var:trigger_keyword}"]:
+    errors.append(f"expected exactly one keyword {{var:trigger_keyword}}, found {sorted(keywords)}")
 
-# Every keyword → exactly one Run Script → Notification showing {query}.
-# A keyword may fan out to other objects too (hide-diagnose also fires a static progress notification).
+# The keyword → exactly one Run Script → Notification showing {query}.
 for kw, uid in keywords.items():
     targets = [objects[c["destinationuid"]] for c in connections.get(uid, []) if c["destinationuid"] in objects]
     scripts = [o for o in targets if o["type"] == "alfred.workflow.action.script"]
@@ -72,15 +72,16 @@ for kw, uid in keywords.items():
     if objects[step2[0]]["config"].get("text") != "{query}":
         errors.append(f"keyword {kw}: notification text must be {{query}} so failures are visible")
 
-# hide-diagnose dumps for seconds: the keyword itself must fire a static "collecting…" notification.
-diag_targets = [objects[c["destinationuid"]] for c in connections.get(keywords.get("hide-diagnose", ""), []) if c["destinationuid"] in objects]
-progress = [o for o in diag_targets if o["type"] == "alfred.workflow.output.notification"]
-if len(progress) != 1:
-    errors.append(f"keyword hide-diagnose: needs exactly one direct progress notification (found {len(progress)})")
-else:
-    text = progress[0]["config"].get("text", "")
-    if not text or "{query}" in text or progress[0]["config"].get("onlyshowifquerypopulated"):
-        errors.append("keyword hide-diagnose: progress notification must have static text and show without a query")
+# No leftovers: every object is a keyword or the target of a connection; every uidata entry names an object.
+targets_all = {c["destinationuid"] for conns in connections.values() for c in conns}
+for uid, obj in objects.items():
+    if obj["type"] != "alfred.workflow.input.keyword" and uid not in targets_all:
+        errors.append(f"{uid}: {obj['type']} is not connected to anything")
+for uid in plist.get("uidata", {}):
+    if uid not in objects:
+        errors.append(f"uidata entry {uid} has no object")
+if "hide-diagnose" in plist.get("readme", ""):
+    errors.append("readme still mentions hide-diagnose")
 
 if plist.get("version") != "2.0":
     errors.append(f"version is {plist.get('version')!r}, expected '2.0'")

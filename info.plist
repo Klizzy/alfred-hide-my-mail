@@ -34,42 +34,6 @@
 				<false/>
 			</dict>
 		</array>
-		<key>E1F2A3B4-C5D6-E7F8-A9B0-C1D2E3F4A5B6</key>
-		<array>
-			<dict>
-				<key>destinationuid</key>
-				<string>F2A3B4C5-D6E7-F8A9-B0C1-D2E3F4A5B6C7</string>
-				<key>modifiers</key>
-				<integer>0</integer>
-				<key>modifiersubtext</key>
-				<string></string>
-				<key>vitoclose</key>
-				<false/>
-			</dict>
-			<dict>
-				<key>destinationuid</key>
-				<string>B4C5D6E7-F8A9-B0C1-D2E3-F4A5B6C7D8E9</string>
-				<key>modifiers</key>
-				<integer>0</integer>
-				<key>modifiersubtext</key>
-				<string></string>
-				<key>vitoclose</key>
-				<false/>
-			</dict>
-		</array>
-		<key>F2A3B4C5-D6E7-F8A9-B0C1-D2E3F4A5B6C7</key>
-		<array>
-			<dict>
-				<key>destinationuid</key>
-				<string>A3B4C5D6-E7F8-A9B0-C1D2-E3F4A5B6C7D8</string>
-				<key>modifiers</key>
-				<integer>0</integer>
-				<key>modifiersubtext</key>
-				<string></string>
-				<key>vitoclose</key>
-				<false/>
-			</dict>
-		</array>
 	</dict>
 	<key>createdby</key>
 	<string>Klizzy</string>
@@ -146,92 +110,6 @@
 			<key>version</key>
 			<integer>1</integer>
 		</dict>
-		<dict>
-			<key>config</key>
-			<dict>
-				<key>argumenttype</key>
-				<integer>2</integer>
-				<key>keyword</key>
-				<string>hide-diagnose</string>
-				<key>subtext</key>
-				<string>Dump the System Settings UI hierarchy for debugging</string>
-				<key>text</key>
-				<string>Diagnose Hide My Mail</string>
-				<key>withspace</key>
-				<false/>
-			</dict>
-			<key>type</key>
-			<string>alfred.workflow.input.keyword</string>
-			<key>uid</key>
-			<string>E1F2A3B4-C5D6-E7F8-A9B0-C1D2E3F4A5B6</string>
-			<key>version</key>
-			<integer>1</integer>
-		</dict>
-		<dict>
-			<key>config</key>
-			<dict>
-				<key>concurrently</key>
-				<false/>
-				<key>escaping</key>
-				<integer>76</integer>
-				<key>script</key>
-				<string></string>
-				<key>scriptargtype</key>
-				<integer>1</integer>
-				<key>scriptfile</key>
-				<string>src/diagnose.applescript</string>
-				<key>type</key>
-				<integer>8</integer>
-			</dict>
-			<key>type</key>
-			<string>alfred.workflow.action.script</string>
-			<key>uid</key>
-			<string>F2A3B4C5-D6E7-F8A9-B0C1-D2E3F4A5B6C7</string>
-			<key>version</key>
-			<integer>2</integer>
-		</dict>
-		<dict>
-			<key>config</key>
-			<dict>
-				<key>lastpathcomponent</key>
-				<false/>
-				<key>onlyshowifquerypopulated</key>
-				<false/>
-				<key>removeextension</key>
-				<false/>
-				<key>text</key>
-				<string>{query}</string>
-				<key>title</key>
-				<string>Hide My Mail Diagnosis</string>
-			</dict>
-			<key>type</key>
-			<string>alfred.workflow.output.notification</string>
-			<key>uid</key>
-			<string>A3B4C5D6-E7F8-A9B0-C1D2-E3F4A5B6C7D8</string>
-			<key>version</key>
-			<integer>1</integer>
-		</dict>
-		<dict>
-			<key>config</key>
-			<dict>
-				<key>lastpathcomponent</key>
-				<false/>
-				<key>onlyshowifquerypopulated</key>
-				<false/>
-				<key>removeextension</key>
-				<false/>
-				<key>text</key>
-				<string>Collecting the diagnosis — System Settings opens and closes by itself. Please wait for the next notification.</string>
-				<key>title</key>
-				<string>Hide My Mail Diagnosis</string>
-			</dict>
-			<key>type</key>
-			<string>alfred.workflow.output.notification</string>
-			<key>uid</key>
-			<string>B4C5D6E7-F8A9-B0C1-D2E3-F4A5B6C7D8E9</string>
-			<key>version</key>
-			<integer>1</integer>
-		</dict>
 	</array>
 	<key>readme</key>
 	<string># alfred-hide-my-mail
@@ -277,7 +155,7 @@ The workflow will open the MacOS System Settings, navigate to the appropriate se
 ## Diagnostics
 
 ---
-The notification shows the created address, or `Failed: …` with the step. On failure a diagnosis file is written to `~/Desktop/hide-my-mail-diagnosis.txt` — attach it to a GitHub issue. Run `hide-diagnose` to create it on demand.
+The notification shows the created address, or `Failed: …` with the step. On failure a diagnosis file is written to `~/Desktop/hide-my-mail-diagnosis.txt` (the next failure overwrites it) — attach it to a GitHub issue.
 
 If System Settings just opens and nothing happens, make sure Alfred is enabled under System Settings → Privacy &amp; Security → Accessibility.
 
@@ -327,38 +205,6 @@ The main script is heavily inspired by a created Shortcut from [this reddit thre
 			<real>695</real>
 			<key>ypos</key>
 			<real>355</real>
-		</dict>
-		<key>E1F2A3B4-C5D6-E7F8-A9B0-C1D2E3F4A5B6</key>
-		<dict>
-			<key>xpos</key>
-			<real>365</real>
-			<key>ypos</key>
-			<real>535</real>
-		</dict>
-		<key>F2A3B4C5-D6E7-F8A9-B0C1-D2E3F4A5B6C7</key>
-		<dict>
-			<key>note</key>
-			<string>External Script — src/diagnose.applescript</string>
-			<key>xpos</key>
-			<real>695</real>
-			<key>ypos</key>
-			<real>535</real>
-		</dict>
-		<key>B4C5D6E7-F8A9-B0C1-D2E3-F4A5B6C7D8E9</key>
-		<dict>
-			<key>note</key>
-			<string>Progress — fires immediately; the result notification follows when the dump is written</string>
-			<key>xpos</key>
-			<real>695</real>
-			<key>ypos</key>
-			<real>665</real>
-		</dict>
-		<key>A3B4C5D6-E7F8-A9B0-C1D2-E3F4A5B6C7D8</key>
-		<dict>
-			<key>xpos</key>
-			<real>1020</real>
-			<key>ypos</key>
-			<real>535</real>
 		</dict>
 	</dict>
 	<key>userconfigurationconfig</key>

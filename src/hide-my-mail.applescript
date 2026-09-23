@@ -2,7 +2,7 @@
 -- Hide My Mail for Alfred — v2.0
 -- Creates an iCloud "Hide My Email" address with the given label and copies it to the clipboard.
 -- Both macOS Sequoia (15.x) and Tahoe (26.x) open the iCloud pane directly and find the Hide My Email card by its
--- accessibility identifier (shared block below); the sheet steps are each version's proven sequence.
+-- accessibility identifier (NAVIGATION below); the sheet steps are each version's proven sequence.
 --
 -- Usage:  osascript src/hide-my-mail.applescript "My Label"
 --         osascript src/hide-my-mail.applescript --selftest | --version
@@ -19,11 +19,8 @@ property kContinueNames : {"Continue", "Fortfahren", "Continuer", "Continuar"}
 property kCopyNames : {"Copy Address", "Adresse kopieren", "Copier l'adresse", "Copiar dirección"}
 property kDoneNames : {"Done", "Fertig", "Terminé", "OK", "Listo"}
 
--- BEGIN SHARED NAVIGATION
 ----------------------------------------------------------------------
--- Identical in src/hide-my-mail.applescript and src/diagnose.applescript. Edit it HERE, then run
--- `bash tests/sync-shared-block.sh`; tests/headless.sh fails when the two copies differ.
--- Uses kMaxTicks from the enclosing script (100 ticks = 10 s in hide-my-mail.applescript, 50 = 5 s in diagnose.applescript).
+-- NAVIGATION — iCloud pane and Hide My Email card, both branches
 ----------------------------------------------------------------------
 
 property kICloudPaneId : "com.apple.systempreferences.AppleIDSettings:icloud"
@@ -36,7 +33,7 @@ property kSettleTicks : 10 -- the card count must be unchanged for 10 x 0.1 s be
 property kProbeNodes : 12 -- containers the sheet-text probe may visit (4 batched reads each)
 property navLog : {}
 
--- One line per navigation step. The main script hands the log to the failure diagnosis, diagnose prints it.
+-- One line per navigation step, kept in memory; on failure it goes into the diagnosis file, on success it is dropped.
 on navNote(msg)
 	set end of navLog to (msg as text)
 end navNote
@@ -351,8 +348,6 @@ on pressTile(b, useAXPress)
 		end if
 	end tell
 end pressTile
-
--- END SHARED NAVIGATION
 
 on run argv
 	if (count of argv) > 0 then

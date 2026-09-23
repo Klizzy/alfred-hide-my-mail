@@ -53,7 +53,7 @@ The notification always tells you what really happened: `Created <address> — c
 
 **When it fails, a diagnosis file is written automatically** to `~/Desktop/hide-my-mail-diagnosis.txt` with the System Settings layout at the moment of failure. Attach it to a [GitHub issue](https://github.com/Klizzy/alfred-hide-my-mail/issues). It contains the UI structure and your macOS/locale/Alfred versions. Long lists such as your saved address labels are shortened to a handful of entries, but the address shown in an open sheet is included — check the file before posting.
 
-You can also produce it on demand: run `hide-diagnose` in Alfred (no argument). A "Collecting the diagnosis…" notification appears immediately; System Settings opens, navigates to Hide My Email without creating anything, and closes again. The "Diagnosis saved" notification follows a few seconds later.
+The file is overwritten by the next failure, so nothing piles up on your Desktop. Nothing is logged when a run succeeds.
 
 ## Why?
 
