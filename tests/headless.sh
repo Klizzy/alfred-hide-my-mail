@@ -53,7 +53,7 @@ for f in src/hide-my-mail.applescript src/diagnose.applescript; do
 done
 ok "no positional grid clicks"
 
-! grep -q "entire contents of" src/diagnose.applescript || fail "diagnose.applescript uses 'entire contents' (unbounded, stalled 5 s per probe) — use batched per-parent reads"
+! grep -q "entire contents" src/diagnose.applescript || fail "diagnose.applescript uses 'entire contents' (unbounded, stalled 5 s per probe) — use batched per-parent reads"
 ok "no 'entire contents' in diagnose.applescript"
 
 out=$(osascript src/hide-my-mail.applescript --selftest)

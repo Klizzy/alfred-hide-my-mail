@@ -276,7 +276,7 @@ end sheetFirstText
 
 -- Breadth-first over at most kProbeNodes containers, three batched reads each (role, name, value of every child),
 -- 2 s per read. Returns the first non-empty name or value of an AXStaticText/AXHeading. Best effort: never throws.
--- Replaces `entire contents`, which stalled 5 s and returned "" on the real Hide My Email sheet.
+-- Replaces the unbounded whole-subtree read, which stalled 5 s and returned "" on the real Hide My Email sheet.
 on firstTextIn(axContainer)
 	set queue to {axContainer}
 	set visited to 0
